@@ -1,1039 +1,546 @@
-// ========== SISTEMA DE AUTENTICAÇÃO ==========
-class SistemaAutenticacao {
-    constructor() {
-        this.usuariosKey = 'sesi_usuarios_v4';
-        this.sessaoKey = 'sesi_sessao_v4';
-        this.usuarioAtual = null;
-        this.usuarios = {};
-    }
+// ========== CONFIGURAÇÕES INICIAIS ==========
+const SENHA_PADRAO = "sesi2026"; // Senha padrão (em produção, usar autenticação real)
+const USUARIOS_AUTORIZADOS = [
+    "lafaiete@sesiescola.com.br",
+    "professor@sesiescola.com.br",
+    "coordenacao@sesiescola.com.br"
+];
 
-    inicializar() {
-        this.carregarUsuarios();
-        return this.verificarSessao();
-    }
+// Configurações do Google Drive
+const DRIVE_CLIENT_ID = "SEU_CLIENT_ID_AQUI"; // Substituir pelo Client ID real
+const DRIVE_API_KEY = "SUA_API_KEY_AQUI"; // Substituir pela API Key real
+const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.file";
 
-    carregarUsuarios() {
-        const dados = localStorage.getItem(this.usuariosKey);
-        if (!dados) {
-            this.usuarios = {
-                'professor': {
-                    id: 'prof_001',
-                    usuario: 'professor',
-                    senha: 'sesi2024',
-                    nome: 'Professor Demo',
-                    email: 'professor@sesi.com',
-                    unidade: 'EM Tubarão 2026',
-                    dataCadastro: new Date().toISOString(),
-                    chaveDados: 'professor_data_v4'
-                }
-            };
-            this.salvarUsuarios();
-        } else {
-            this.usuarios = JSON.parse(dados);
-        }
-    }
+// Estado da aplicação
+let usuarioLogado = null;
+let driveAutenticado = false;
+let drivePastaId = null;
 
-    salvarUsuarios() {
-        localStorage.setItem(this.usuariosKey, JSON.stringify(this.usuarios));
-    }
+// ========== ELEMENTOS DOM ADICIONAIS ==========
+const paginaLogin = document.getElementById("paginaLogin");
+const appPrincipal = document.getElementById("appPrincipal");
+const loginEmail = document.getElementById("loginEmail");
+const loginSenha = document.getElementById("loginSenha");
+const btnLogin = document.getElementById("btnLogin");
+const btnLogout = document.getElementById("btnLogout");
+const professorNome = document.getElementById("professorNome");
+const userEmail = document.getElementById("userEmail");
+const btnExportarPDF = document.getElementById("btnExportarPDF");
+const btnExportarDrive = document.getElementById("btnExportarDrive");
+const btnExportarSemanaPDF = document.getElementById("btnExportarSemanaPDF");
+const btnExportarJSON = document.getElementById("btnExportarJSON");
+const modalDrive = document.getElementById("modalDrive");
+const btnConectarDrive = document.getElementById("btnConectarDrive");
+const btnDesconectarDrive = document.getElementById("btnDesconectarDrive");
+const btnFecharDrive = document.getElementById("btnFecharDrive");
+const driveConnectionStatus = document.getElementById("driveConnectionStatus");
+const drivePastaInput = document.getElementById("drivePasta");
+const driveStatus = document.getElementById("driveStatus");
 
-    verificarSessao() {
-        const sessao = localStorage.getItem(this.sessaoKey);
-        if (sessao) {
-            try {
-                const dados = JSON.parse(sessao);
-                if (dados.usuario && this.usuarios[dados.usuario]) {
-                    this.usuarioAtual = dados.usuario;
-                    return true;
-                }
-            } catch (e) {
-                console.error('Erro na sessão:', e);
-                localStorage.removeItem(this.sessaoKey);
-            }
-        }
-        return false;
-    }
-
-    login(usuario, senha) {
-        usuario = usuario.toLowerCase().trim();
-        
-        let usuarioEncontrado = null;
-        let usuarioKey = null;
-        
-        for (const [key, user] of Object.entries(this.usuarios)) {
-            if (key.toLowerCase() === usuario || user.email.toLowerCase() === usuario) {
-                if (user.senha === senha) {
-                    usuarioEncontrado = user;
-                    usuarioKey = key;
-                    break;
-                }
-            }
-        }
-        
-        if (!usuarioEncontrado) {
-            throw new Error('Usuário ou senha incorretos');
-        }
-
-        this.usuarioAtual = usuarioKey;
-        const sessao = {
-            usuario: usuarioKey,
-            timestamp: Date.now(),
-            data: new Date().toISOString(),
-            chaveDados: usuarioEncontrado.chaveDados
-        };
-        localStorage.setItem(this.sessaoKey, JSON.stringify(sessao));
-        
-        return usuarioEncontrado;
-    }
-
-    cadastrar(dados) {
-        const { nome, usuario, email, senha } = dados;
-        
-        if (!nome || !usuario || !email || !senha) {
-            throw new Error('Preencha todos os campos');
-        }
-        
-        if (usuario.length < 3) {
-            throw new Error('Usuário muito curto (mínimo 3 caracteres)');
-        }
-        
-        if (senha.length < 4) {
-            throw new Error('Senha muito curta (mínimo 4 caracteres)');
-        }
-        
-        if (this.usuarios[usuario]) {
-            throw new Error('Usuário já existe');
-        }
-        
-        const emailExistente = Object.values(this.usuarios).some(
-            u => u.email.toLowerCase() === email.toLowerCase()
-        );
-        if (emailExistente) {
-            throw new Error('Email já cadastrado');
-        }
-        
-        const chaveDados = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        
-        const novoUsuario = {
-            id: 'user_' + Date.now(),
-            usuario: usuario,
-            senha: senha,
-            nome: nome,
-            email: email.toLowerCase(),
-            unidade: 'Não definida',
-            dataCadastro: new Date().toISOString(),
-            chaveDados: chaveDados
-        };
-        
-        this.usuarios[usuario] = novoUsuario;
-        this.salvarUsuarios();
-        
-        return novoUsuario;
-    }
-
-    logout() {
-        this.usuarioAtual = null;
-        localStorage.removeItem(this.sessaoKey);
-    }
-
-    getUsuarioAtual() {
-        return this.usuarios[this.usuarioAtual];
-    }
-
-    getChaveDadosUsuario() {
-        const usuario = this.getUsuarioAtual();
-        return usuario ? usuario.chaveDados : null;
-    }
-
-    atualizarUsuario(dados) {
-        const usuario = this.getUsuarioAtual();
-        if (!usuario) return false;
-        
-        Object.assign(usuario, dados);
-        this.salvarUsuarios();
+// ========== SISTEMA DE LOGIN ==========
+function verificarLogin() {
+    const emailSalvo = localStorage.getItem('sesi_usuario_email');
+    const senhaSalva = localStorage.getItem('sesi_usuario_senha');
+    
+    if (emailSalvo && senhaSalva && USUARIOS_AUTORIZADOS.includes(emailSalvo)) {
+        realizarLogin(emailSalvo, senhaSalva, true);
         return true;
     }
+    return false;
 }
 
-// ========== SISTEMA DE DADOS DO USUÁRIO ==========
-class SistemaDadosUsuario {
-    constructor(chaveUsuario) {
-        this.chaveUsuario = chaveUsuario;
-        this.chavePlanejamentos = `sesi_planejamentos_${chaveUsuario}_v4`;
-        this.chaveConfig = `sesi_config_${chaveUsuario}_v4`;
-    }
-
-    carregarPlanejamentos() {
-        try {
-            const dados = localStorage.getItem(this.chavePlanejamentos);
-            return dados ? JSON.parse(dados) : {};
-        } catch (e) {
-            console.error('Erro ao carregar planejamentos:', e);
-            return {};
-        }
-    }
-
-    salvarPlanejamentos(dados) {
-        try {
-            localStorage.setItem(this.chavePlanejamentos, JSON.stringify(dados));
-            return true;
-        } catch (e) {
-            console.error('Erro ao salvar planejamentos:', e);
-            return false;
-        }
-    }
-
-    carregarConfig() {
-        try {
-            const dados = localStorage.getItem(this.chaveConfig);
-            return dados ? JSON.parse(dados) : { dataInicio: null };
-        } catch (e) {
-            console.error('Erro ao carregar config:', e);
-            return { dataInicio: null };
-        }
-    }
-
-    salvarConfig(dados) {
-        try {
-            localStorage.setItem(this.chaveConfig, JSON.stringify(dados));
-            return true;
-        } catch (e) {
-            console.error('Erro ao salvar config:', e);
-            return false;
-        }
-    }
-
-    exportarTodosDados() {
-        return {
-            planejamentos: this.carregarPlanejamentos(),
-            config: this.carregarConfig(),
-            chaveUsuario: this.chaveUsuario,
-            dataExportacao: new Date().toISOString()
-        };
-    }
-
-    limparDados() {
-        localStorage.removeItem(this.chavePlanejamentos);
-        localStorage.removeItem(this.chaveConfig);
-    }
-}
-
-// ========== VARIÁVEIS GLOBAIS ==========
-let authSystem = null;
-let dadosSystem = null;
-let semanas = [];
-let semanaAtual = -1;
-
-// Disciplinas
-const DISCIPLINAS = [
-    { id: "biologia", nome: "Biologia", icone: "🧬" },
-    { id: "biohackeria", nome: "Biohackeria", icone: "🔬" },
-    { id: "projetos_livres", nome: "Projetos Livres", icone: "💡" },
-    { id: "robotica", nome: "Robótica", icone: "🤖" },
-    { id: "apps_games", nome: "Apps e Games", icone: "🎮" },
-    { id: "iniciacao_cientifica", nome: "Iniciação Científica", icone: "🔍" },
-    { id: "outra", nome: "Outra", icone: "📝" }
-];
-
-const HORARIOS = [
-    "07:15 - 08:00",
-    "08:00 - 08:45", 
-    "08:45 - 09:30",
-    "09:30 - 10:15",
-    "10:30 - 11:15",
-    "11:15 - 12:00",
-    "12:00 - 12:45"
-];
-
-// ========== FUNÇÕES DE AUTENTICAÇÃO ==========
-function mostrarLogin() {
-    document.getElementById('loginForm').classList.add('active');
-    document.getElementById('cadastroForm').classList.remove('active');
-}
-
-function mostrarCadastro() {
-    document.getElementById('loginForm').classList.remove('active');
-    document.getElementById('cadastroForm').classList.add('active');
-}
-
-function fazerLogin() {
-    try {
-        const usuario = document.getElementById('loginUsuario').value;
-        const senha = document.getElementById('loginSenha').value;
-        
-        if (!usuario || !senha) {
-            mostrarMensagem('Preencha usuário e senha', 'error');
-            return;
-        }
-        
-        const usuarioObj = authSystem.login(usuario, senha);
-        
-        if (document.getElementById('lembrarUsuario').checked) {
-            localStorage.setItem('sesi_lembrar_usuario', usuario);
-        } else {
-            localStorage.removeItem('sesi_lembrar_usuario');
-        }
-        
-        const chaveDados = authSystem.getChaveDadosUsuario();
-        dadosSystem = new SistemaDadosUsuario(chaveDados);
-        
-        mostrarMensagem(`Bem-vindo, ${usuarioObj.nome}!`, 'success');
-        iniciarAplicacao();
-        
-    } catch (error) {
-        mostrarMensagem(error.message, 'error');
-    }
-}
-
-function fazerCadastro() {
-    try {
-        const nome = document.getElementById('cadastroNome').value;
-        const usuario = document.getElementById('cadastroUsuario').value;
-        const email = document.getElementById('cadastroEmail').value;
-        const senha = document.getElementById('cadastroSenha').value;
-        const confirmarSenha = document.getElementById('cadastroConfirmarSenha').value;
-        const termos = document.getElementById('termosUso').checked;
-        
-        if (!nome || !usuario || !email || !senha || !confirmarSenha) {
-            throw new Error('Preencha todos os campos');
-        }
-        
-        if (senha !== confirmarSenha) {
-            throw new Error('As senhas não coincidem');
-        }
-        
-        if (!termos) {
-            throw new Error('Aceite os termos de uso');
-        }
-        
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            throw new Error('Email inválido');
-        }
-        
-        const dados = { nome, usuario, email, senha };
-        const novoUsuario = authSystem.cadastrar(dados);
-        
-        dadosSystem = new SistemaDadosUsuario(novoUsuario.chaveDados);
-        authSystem.login(usuario, senha);
-        
-        mostrarMensagem(`Conta criada com sucesso, ${nome}!`, 'success');
-        setTimeout(() => iniciarAplicacao(), 1000);
-        
-    } catch (error) {
-        mostrarMensagem(error.message, 'error');
-    }
-}
-
-function fazerLogout() {
-    if (confirm('Deseja realmente sair?')) {
-        authSystem.logout();
-        window.location.reload();
-    }
-}
-
-// ========== INICIALIZAÇÃO ==========
-function iniciarAplicacao() {
-    document.getElementById('telaLogin').classList.add('hidden');
-    document.getElementById('appPrincipal').classList.remove('hidden');
-    
-    const usuario = authSystem.getUsuarioAtual();
-    if (usuario) {
-        document.getElementById('userNome').textContent = usuario.nome;
-        document.getElementById('userEmail').textContent = usuario.email;
-        document.getElementById('userCumprimento').textContent = usuario.nome.split(' ')[0];
-        document.getElementById('professorNome').textContent = usuario.nome;
-        document.getElementById('professorUnidade').textContent = usuario.unidade;
-        document.getElementById('footerUsuario').textContent = usuario.usuario;
+function realizarLogin(email, senha, automatico = false) {
+    // Validação simples (em produção, usar servidor de autenticação)
+    if (!USUARIOS_AUTORIZADOS.includes(email)) {
+        if (!automatico) alert("E-mail não autorizado. Contate a coordenação.");
+        return false;
     }
     
-    configurarEventos();
-    carregarDadosUsuario();
+    if (senha !== SENHA_PADRAO) {
+        if (!automatico) alert("Senha incorreta.");
+        return false;
+    }
+    
+    usuarioLogado = {
+        email: email,
+        nome: email.split('@')[0].replace('.', ' ').replace('_', ' ')
+    };
+    
+    // Salvar credenciais se marcado "lembrar"
+    const lembrar = document.getElementById("lembrarLogin").checked;
+    if (lembrar || automatico) {
+        localStorage.setItem('sesi_usuario_email', email);
+        localStorage.setItem('sesi_usuario_senha', senha);
+    }
+    
+    // Atualizar interface
+    professorNome.textContent = usuarioLogado.nome;
+    userEmail.textContent = usuarioLogado.email;
+    
+    // Mostrar aplicação
+    paginaLogin.classList.remove("active");
+    paginaLogin.classList.add("hidden");
+    appPrincipal.classList.remove("hidden");
+    appPrincipal.classList.add("active");
+    
+    // Carregar dados
+    carregarDataInicio();
+    atualizarEstatisticas();
+    
+    // Tentar conectar ao Drive
+    setTimeout(() => {
+        inicializarDriveAPI();
+    }, 1000);
+    
+    return true;
 }
 
-function carregarDadosUsuario() {
-    if (!dadosSystem) return;
+function realizarLogout() {
+    localStorage.removeItem('sesi_usuario_senha');
+    usuarioLogado = null;
     
-    const config = dadosSystem.carregarConfig();
-    const inicioLetivo = document.getElementById('inicioLetivo');
+    appPrincipal.classList.remove("active");
+    appPrincipal.classList.add("hidden");
+    paginaLogin.classList.remove("hidden");
+    paginaLogin.classList.add("active");
     
-    if (config.dataInicio) {
-        inicioLetivo.value = config.dataInicio;
-        gerarSemanas(config.dataInicio);
+    // Limpar campos de login
+    loginEmail.value = "";
+    loginSenha.value = "";
+}
+
+// ========== GOOGLE DRIVE INTEGRATION ==========
+function inicializarDriveAPI() {
+    gapi.load('client:auth2', () => {
+        gapi.client.init({
+            apiKey: DRIVE_API_KEY,
+            clientId: DRIVE_CLIENT_ID,
+            discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+            scope: DRIVE_SCOPES
+        }).then(() => {
+            console.log("Google Drive API inicializada");
+            verificarAutenticacaoDrive();
+        }).catch(err => {
+            console.error("Erro ao inicializar Google Drive API:", err);
+            driveStatus.textContent = "⚠️ Google Drive: API não disponível";
+        });
+    });
+}
+
+function verificarAutenticacaoDrive() {
+    const authInstance = gapi.auth2.getAuthInstance();
+    const user = authInstance.currentUser.get();
+    
+    if (user.isSignedIn()) {
+        driveAutenticado = true;
+        atualizarStatusDrive("🟢 Google Drive: Conectado");
+        buscarPastaDrive();
     } else {
-        const hoje = new Date();
-        const dataPadrao = hoje.toISOString().split('T')[0];
-        inicioLetivo.value = dataPadrao;
-        gerarSemanas(dataPadrao);
+        driveAutenticado = false;
+        atualizarStatusDrive("🔴 Google Drive: Não conectado");
     }
 }
 
-function configurarEventos() {
-    document.getElementById('inicioLetivo').addEventListener('change', function() {
-        gerarSemanas(this.value);
-    });
-    
-    document.getElementById('btnHoje').addEventListener('click', function() {
-        const hoje = new Date().toISOString().split('T')[0];
-        document.getElementById('inicioLetivo').value = hoje;
-        gerarSemanas(hoje);
-    });
-    
-    document.getElementById('voltar').addEventListener('click', function() {
-        document.getElementById('paginaAulas').classList.add('hidden');
-        document.getElementById('paginaSemanas').classList.remove('hidden');
-    });
-    
-    document.getElementById('btnExportar').addEventListener('click', exportarPlanejamentos);
-    
-    document.getElementById('buscarSemana').addEventListener('input', function() {
-        filtrarSemanas(this.value);
-    });
-    
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            fecharConfiguracoes();
-        }
-    });
+function conectarDrive() {
+    gapi.auth2.getAuthInstance().signIn()
+        .then(() => {
+            driveAutenticado = true;
+            atualizarStatusDrive("🟢 Google Drive: Conectado");
+            buscarPastaDrive();
+            alert("✅ Conectado ao Google Drive com sucesso!");
+        })
+        .catch(err => {
+            console.error("Erro ao conectar ao Drive:", err);
+            alert("❌ Erro ao conectar ao Google Drive");
+        });
 }
 
-// ========== FUNÇÕES DE PLANEJAMENTO ==========
-function gerarSemanas(dataISO) {
-    if (!dataISO || !dadosSystem) return;
+function desconectarDrive() {
+    gapi.auth2.getAuthInstance().signOut()
+        .then(() => {
+            driveAutenticado = false;
+            drivePastaId = null;
+            atualizarStatusDrive("🔴 Google Drive: Desconectado");
+            alert("Desconectado do Google Drive");
+        })
+        .catch(err => {
+            console.error("Erro ao desconectar:", err);
+        });
+}
+
+function atualizarStatusDrive(mensagem) {
+    driveStatus.textContent = mensagem;
+    driveConnectionStatus.textContent = driveAutenticado ? "🟢 Conectado" : "🔴 Não conectado";
+    driveConnectionStatus.className = driveAutenticado ? "connected" : "disconnected";
+}
+
+async function buscarPastaDrive() {
+    if (!driveAutenticado) return;
     
-    semanas = [];
+    const nomePasta = drivePastaInput.value || "Planejamentos SESI 2026";
     
-    let data = new Date(dataISO);
-    const diaSemana = data.getDay();
-    
-    if (diaSemana !== 1) {
-        const ajuste = diaSemana === 0 ? 1 : 1 - diaSemana;
-        data.setDate(data.getDate() + ajuste);
-    }
-    
-    for (let i = 0; i < 43; i++) {
-        const inicio = new Date(data);
-        const fim = new Date(data);
-        fim.setDate(fim.getDate() + 4);
-        
-        semanas.push({
-            id: i + 1,
-            inicio: new Date(inicio),
-            fim: new Date(fim)
+    try {
+        const response = await gapi.client.drive.files.list({
+            q: `name='${nomePasta}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+            fields: 'files(id, name)',
+            spaces: 'drive'
         });
         
-        data.setDate(data.getDate() + 7);
-    }
-    
-    const config = dadosSystem.carregarConfig();
-    config.dataInicio = dataISO;
-    dadosSystem.salvarConfig(config);
-    
-    renderSemanas();
-    
-    const primeira = semanas[0];
-    const ultima = semanas[semanas.length - 1];
-    const periodoTotal = document.getElementById('periodoTotal');
-    if (periodoTotal) {
-        periodoTotal.textContent = `${formatarData(primeira.inicio)} - ${formatarData(ultima.fim)}`;
-    }
-}
-
-function formatarData(data) {
-    return data.toLocaleDateString('pt-BR');
-}
-
-function renderSemanas() {
-    const container = document.getElementById('listaSemanas');
-    if (!container) return;
-    
-    const planejamentos = dadosSystem.carregarPlanejamentos();
-    container.innerHTML = '';
-    
-    semanas.forEach((semana, index) => {
-        const chaveSemana = `semana_${index}`;
-        const temPlanejamento = planejamentos[chaveSemana] && 
-            (planejamentos[chaveSemana].aulas?.some(dia => 
-                dia.some(aula => aula?.disciplina || aula?.conteudo)
-            ) || planejamentos[chaveSemana].anotacoes);
-        
-        const div = document.createElement('div');
-        div.className = 'semana-card';
-        div.style.borderLeftColor = temPlanejamento ? '#2E7D32' : '#0047B6';
-        
-        if (temPlanejamento) {
-            div.innerHTML = `<span style="position: absolute; top: 10px; right: 10px; background: #2E7D32; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px;">💾 Salvo</span>`;
+        if (response.result.files.length > 0) {
+            drivePastaId = response.result.files[0].id;
+            console.log("Pasta encontrada:", drivePastaId);
+        } else {
+            // Criar pasta se não existir
+            await criarPastaDrive(nomePasta);
         }
-        
-        div.innerHTML += `
-            <h3>Semana ${semana.id}</h3>
-            <p>${formatarData(semana.inicio)} a ${formatarData(semana.fim)}</p>
-        `;
-        
-        div.onclick = () => abrirSemana(index);
-        container.appendChild(div);
-    });
-    
-    document.getElementById('contadorSemanas').textContent = `${semanas.length} semanas geradas`;
-}
-
-function filtrarSemanas(termo) {
-    const semanasCards = document.querySelectorAll('.semana-card');
-    if (!termo) {
-        semanasCards.forEach(card => card.style.display = 'block');
-        return;
+    } catch (err) {
+        console.error("Erro ao buscar pasta:", err);
     }
-    
-    const termoLower = termo.toLowerCase();
-    semanasCards.forEach((card, index) => {
-        const texto = `semana ${semanas[index].id} ${formatarData(semanas[index].inicio)} ${formatarData(semanas[index].fim)}`.toLowerCase();
-        card.style.display = texto.includes(termoLower) ? 'block' : 'none';
-    });
 }
 
-function abrirSemana(index) {
-    if (!dadosSystem) return;
-    
-    semanaAtual = index;
-    const semana = semanas[index];
-    
-    document.getElementById('paginaSemanas').classList.add('hidden');
-    document.getElementById('paginaAulas').classList.remove('hidden');
-    
-    document.getElementById('tituloSemana').textContent = 
-        `Semana ${semana.id} - ${formatarData(semana.inicio)} a ${formatarData(semana.fim)}`;
-    
-    renderGradeSemana(index);
-}
-
-function renderGradeSemana(index) {
-    const container = document.getElementById('gradeSemana');
-    if (!container) return;
-    
-    const semana = semanas[index];
-    const dias = ['SEG', 'TER', 'QUA', 'QUI', 'SEX'];
-    
-    const planejamentos = dadosSystem.carregarPlanejamentos();
-    const chaveSemana = `semana_${index}`;
-    const planejamentoSemana = planejamentos[chaveSemana] || {
-        aulas: Array(5).fill().map(() => Array(7).fill({ disciplina: null, conteudo: '' })),
-        anotacoes: ''
-    };
-    
-    let html = `
-        <div class="grade-header">
-            <div class="horario-header">Horário</div>
-    `;
-    
-    dias.forEach((dia, i) => {
-        const data = new Date(semana.inicio);
-        data.setDate(data.getDate() + i);
-        html += `
-            <div class="dia-header">
-                ${dia}<br>
-                <small>${formatarData(data)}</small>
-            </div>
-        `;
-    });
-    
-    html += `</div>`;
-    
-    for (let aula = 0; aula < 7; aula++) {
-        html += `<div class="grade-row">`;
-        html += `<div class="horario-cell">${HORARIOS[aula]}<br><small>45 min</small></div>`;
-        
-        for (let dia = 0; dia < 5; dia++) {
-            const aulaData = planejamentoSemana.aulas[dia]?.[aula] || { disciplina: null, conteudo: '' };
-            const disciplinaSelecionada = DISCIPLINAS.find(d => d.id === aulaData.disciplina);
-            
-            html += `
-                <div class="aula-cell">
-                    <select class="disciplina-select" 
-                            onchange="salvarDisciplina(${index}, ${dia}, ${aula}, this.value)">
-                        <option value="">Selecione...</option>
-                        ${DISCIPLINAS.map(d => `
-                            <option value="${d.id}" ${aulaData.disciplina === d.id ? 'selected' : ''}>
-                                ${d.icone} ${d.nome}
-                            </option>
-                        `).join('')}
-                    </select>
-                    <textarea 
-                        class="aula-textarea"
-                        placeholder="Conteúdo da aula..."
-                        oninput="salvarConteudo(${index}, ${dia}, ${aula}, this.value)"
-                    >${aulaData.conteudo || ''}</textarea>
-                    <div class="aula-actions">
-                        <button class="btn-copy" onclick="copiarConteudo(${index}, ${dia}, ${aula})">
-                            📋 Copiar
-                        </button>
-                        <button class="btn-apagar" onclick="apagarAula(${index}, ${dia}, ${aula})">
-                            🗑️ Apagar
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-        
-        html += `</div>`;
-    }
-    
-    html += `
-        <div class="anotacoes-container" style="margin-top: 30px;">
-            <h3>📝 Anotações da Semana</h3>
-            <textarea id="anotacoesSemana" 
-                      class="anotacoes-textarea"
-                      placeholder="Anotações gerais para esta semana..."
-                      oninput="salvarAnotacoes(${index}, this.value)">${planejamentoSemana.anotacoes || ''}</textarea>
-            <div style="margin-top: 10px;">
-                <button class="btn-copy" onclick="copiarAnotacoes(${index})">📋 Copiar Anotações</button>
-            </div>
-        </div>
-    `;
-    
-    container.innerHTML = html;
-}
-
-// ========== FUNÇÕES DE PERSISTÊNCIA ==========
-function salvarDisciplina(semanaIndex, diaIndex, aulaIndex, disciplina) {
-    if (!dadosSystem) return;
-    
-    const planejamentos = dadosSystem.carregarPlanejamentos();
-    const chave = `semana_${semanaIndex}`;
-    
-    if (!planejamentos[chave]) {
-        planejamentos[chave] = {
-            aulas: Array(5).fill().map(() => Array(7).fill({ disciplina: null, conteudo: '' })),
-            anotacoes: ''
+async function criarPastaDrive(nome) {
+    try {
+        const fileMetadata = {
+            name: nome,
+            mimeType: 'application/vnd.google-apps.folder'
         };
+        
+        const response = await gapi.client.drive.files.create({
+            resource: fileMetadata,
+            fields: 'id'
+        });
+        
+        drivePastaId = response.result.id;
+        console.log("Pasta criada:", drivePastaId);
+    } catch (err) {
+        console.error("Erro ao criar pasta:", err);
     }
-    
-    planejamentos[chave].aulas[diaIndex][aulaIndex].disciplina = disciplina || null;
-    dadosSystem.salvarPlanejamentos(planejamentos);
-    
-    mostrarMensagem('Disciplina salva!', 'success');
 }
 
-function salvarConteudo(semanaIndex, diaIndex, aulaIndex, conteudo) {
-    if (!dadosSystem) return;
-    
-    const planejamentos = dadosSystem.carregarPlanejamentos();
-    const chave = `semana_${semanaIndex}`;
-    
-    if (!planejamentos[chave]) {
-        planejamentos[chave] = {
-            aulas: Array(5).fill().map(() => Array(7).fill({ disciplina: null, conteudo: '' })),
-            anotacoes: ''
-        };
-    }
-    
-    const aulaAtual = planejamentos[chave].aulas[diaIndex][aulaIndex] || { disciplina: null, conteudo: '' };
-    planejamentos[chave].aulas[diaIndex][aulaIndex] = {
-        disciplina: aulaAtual.disciplina,
-        conteudo: conteudo
-    };
-    
-    dadosSystem.salvarPlanejamentos(planejamentos);
-}
-
-function salvarAnotacoes(semanaIndex, anotacoes) {
-    if (!dadosSystem) return;
-    
-    const planejamentos = dadosSystem.carregarPlanejamentos();
-    const chave = `semana_${semanaIndex}`;
-    
-    if (!planejamentos[chave]) {
-        planejamentos[chave] = {
-            aulas: Array(5).fill().map(() => Array(7).fill({ disciplina: null, conteudo: '' })),
-            anotacoes: ''
-        };
-    }
-    
-    planejamentos[chave].anotacoes = anotacoes;
-    dadosSystem.salvarPlanejamentos(planejamentos);
-}
-
-// ========== FUNÇÕES UTILITÁRIAS ==========
-async function copiarConteudo(semanaIndex, diaIndex, aulaIndex) {
-    if (!dadosSystem) return;
-    
-    const planejamentos = dadosSystem.carregarPlanejamentos();
-    const chave = `semana_${semanaIndex}`;
-    const aula = planejamentos[chave]?.aulas[diaIndex]?.[aulaIndex];
-    
-    if (!aula || (!aula.disciplina && !aula.conteudo)) {
-        mostrarMensagem('Nada para copiar!', 'error');
-        return;
-    }
-    
-    let texto = '';
-    if (aula.disciplina) {
-        const disciplina = DISCIPLINAS.find(d => d.id === aula.disciplina);
-        texto += `Disciplina: ${disciplina?.nome || aula.disciplina}\n`;
-    }
-    if (aula.conteudo) {
-        texto += aula.conteudo;
+async function salvarNoDrive(nomeArquivo, conteudo, mimeType = 'application/pdf') {
+    if (!driveAutenticado || !drivePastaId) {
+        alert("Conecte ao Google Drive primeiro!");
+        abrirModalDrive();
+        return false;
     }
     
     try {
-        await navigator.clipboard.writeText(texto);
-        mostrarMensagem('Conteúdo copiado!', 'success');
+        const fileMetadata = {
+            name: nomeArquivo,
+            parents: [drivePastaId],
+            mimeType: mimeType
+        };
+        
+        // Converter para blob se for PDF
+        let blob;
+        if (mimeType === 'application/pdf') {
+            blob = new Blob([conteudo], { type: 'application/pdf' });
+        } else {
+            blob = new Blob([JSON.stringify(conteudo, null, 2)], { type: 'application/json' });
+        }
+        
+        const formData = new FormData();
+        formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+        formData.append('file', blob);
+        
+        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+            method: 'POST',
+            headers: new Headers({
+                'Authorization': `Bearer ${gapi.auth.getToken().access_token}`
+            }),
+            body: formData
+        });
+        
+        if (response.ok) {
+            alert(`✅ Arquivo "${nomeArquivo}" salvo no Google Drive!`);
+            return true;
+        } else {
+            throw new Error('Erro ao salvar no Drive');
+        }
     } catch (err) {
-        const textarea = document.createElement('textarea');
-        textarea.value = texto;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        mostrarMensagem('Conteúdo copiado!', 'success');
+        console.error("Erro ao salvar no Drive:", err);
+        alert("❌ Erro ao salvar no Google Drive");
+        return false;
     }
 }
 
-async function copiarAnotacoes(semanaIndex) {
-    if (!dadosSystem) return;
-    
-    const planejamentos = dadosSystem.carregarPlanejamentos();
-    const chave = `semana_${semanaIndex}`;
-    const anotacoes = planejamentos[chave]?.anotacoes || '';
-    
-    if (!anotacoes.trim()) {
-        mostrarMensagem('Nenhuma anotação para copiar!', 'error');
-        return;
-    }
-    
-    try {
-        await navigator.clipboard.writeText(anotacoes);
-        mostrarMensagem('Anotações copiadas!', 'success');
-    } catch (err) {
-        const textarea = document.createElement('textarea');
-        textarea.value = anotacoes;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        mostrarMensagem('Anotações copiadas!', 'success');
-    }
+function abrirModalDrive() {
+    modalDrive.classList.remove('hidden');
 }
 
-async function copiarTodaSemana() {
-    if (!dadosSystem || semanaAtual === -1) return;
+// ========== EXPORTAÇÃO PDF ==========
+function exportarParaPDF(tipo = 'completo', semanaIndex = null) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+    });
     
-    const planejamentos = dadosSystem.carregarPlanejamentos();
-    const chave = `semana_${semanaAtual}`;
-    const semanaPlanejamento = planejamentos[chave];
-    const semana = semanas[semanaAtual];
+    // Cabeçalho
+    doc.setFontSize(20);
+    doc.setTextColor(0, 71, 182);
+    doc.text('PLANEJAMENTO DE AULAS - SESI', 105, 15, { align: 'center' });
     
-    if (!semanaPlanejamento) {
-        mostrarMensagem('Nada para copiar nesta semana!', 'error');
-        return;
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Professor: ${usuarioLogado.nome}`, 15, 25);
+    doc.text(`Unidade: EM Tubarão 2026`, 15, 32);
+    doc.text(`Data de exportação: ${new Date().toLocaleDateString('pt-BR')}`, 15, 39);
+    
+    if (tipo === 'semana' && semanaIndex !== null) {
+        exportarSemanaPDF(doc, semanaIndex);
+    } else {
+        exportarCompletoPDF(doc);
     }
     
-    let texto = `PLANEJAMENTO DA SEMANA ${semana.id}\n`;
-    texto += `Período: ${formatarData(semana.inicio)} a ${formatarData(semana.fim)}\n\n`;
+    // Gerar nome do arquivo
+    const nomeArquivo = tipo === 'semana' 
+        ? `planejamento_semana_${semanaIndex + 1}_${new Date().toISOString().split('T')[0]}.pdf`
+        : `planejamento_completo_${new Date().toISOString().split('T')[0]}.pdf`;
     
-    const dias = ['SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA'];
+    // Salvar localmente
+    doc.save(nomeArquivo);
+    
+    // Opção de salvar no Drive
+    setTimeout(() => {
+        mostrarModal(
+            "Salvar no Google Drive",
+            "Deseja salvar este arquivo PDF no seu Google Drive?",
+            () => {
+                const pdfOutput = doc.output('blob');
+                salvarNoDrive(nomeArquivo, pdfOutput, 'application/pdf');
+            }
+        );
+    }, 500);
+}
+
+function exportarSemanaPDF(doc, semanaIndex) {
+    const semana = semanas[semanaIndex];
+    const planejamento = planejamentos[`semana_${semanaIndex}`] || { aulas: [], anotacoes: "" };
+    
+    // Título da semana
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Semana ${semana.id} - ${formatar(semana.inicio)} a ${formatar(semana.fim)}`, 105, 50, { align: 'center' });
+    
+    let yPos = 60;
+    
+    // Tabela de aulas
+    const dias = ["SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA"];
     
     dias.forEach((diaNome, diaIndex) => {
-        texto += `\n=== ${diaNome} ===\n`;
+        doc.setFontSize(14);
+        doc.setTextColor(0, 71, 182);
+        doc.text(`${diaNome} - ${formatar(adicionarDias(semana.inicio, diaIndex))}`, 15, yPos);
+        yPos += 10;
+        
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        
         for (let aulaIndex = 0; aulaIndex < 7; aulaIndex++) {
-            const aula = semanaPlanejamento.aulas[diaIndex]?.[aulaIndex] || { disciplina: null, conteudo: '' };
-            if (aula.disciplina || aula.conteudo) {
-                texto += `\n${HORARIOS[aulaIndex]}:\n`;
-                if (aula.disciplina) {
-                    const disciplina = DISCIPLINAS.find(d => d.id === aula.disciplina);
-                    texto += `Disciplina: ${disciplina?.nome || aula.disciplina}\n`;
+            const aula = planejamento.aulas[diaIndex]?.[aulaIndex] || { disciplina: null, conteudo: "" };
+            const disciplina = DISCIPLINAS.find(d => d.id === aula.disciplina);
+            const conteudo = aula.conteudo || "";
+            
+            if (conteudo.trim() || disciplina) {
+                doc.text(`${HORARIOS[aulaIndex]}:`, 20, yPos);
+                if (disciplina) {
+                    doc.text(`Disciplina: ${disciplina.nome}`, 60, yPos);
                 }
-                if (aula.conteudo) {
-                    texto += `Conteúdo: ${aula.conteudo}\n`;
+                if (conteudo.trim()) {
+                    yPos += 5;
+                    doc.text(`Conteúdo: ${conteudo.substring(0, 100)}${conteudo.length > 100 ? '...' : ''}`, 20, yPos);
+                }
+                yPos += 10;
+                
+                // Quebra de página
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
                 }
             }
         }
+        yPos += 5;
     });
     
-    if (semanaPlanejamento.anotacoes) {
-        texto += `\n=== ANOTAÇÕES ===\n${semanaPlanejamento.anotacoes}`;
-    }
-    
-    try {
-        await navigator.clipboard.writeText(texto);
-        mostrarMensagem('Semana inteira copiada!', 'success');
-    } catch (err) {
-        const textarea = document.createElement('textarea');
-        textarea.value = texto;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        mostrarMensagem('Semana inteira copiada!', 'success');
+    // Anotações
+    if (planejamento.anotacoes?.trim()) {
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.setTextColor(0, 71, 182);
+        doc.text('ANOTAÇÕES DA SEMANA', 105, 20, { align: 'center' });
+        
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        const anotacoesLines = doc.splitTextToSize(planejamento.anotacoes, 250);
+        doc.text(anotacoesLines, 15, 30);
     }
 }
 
-function apagarAula(semanaIndex, diaIndex, aulaIndex) {
-    if (!confirm('Apagar esta aula?')) return;
+function exportarCompletoPDF(doc) {
+    let yPos = 50;
+    let pagina = 1;
     
-    if (dadosSystem) {
-        const planejamentos = dadosSystem.carregarPlanejamentos();
-        const chave = `semana_${semanaIndex}`;
+    semanas.forEach((semana, semanaIndex) => {
+        const planejamento = planejamentos[`semana_${semanaIndex}`];
+        if (!planejamento || !semanas[semanaIndex].planejado) return;
         
-        if (planejamentos[chave]) {
-            planejamentos[chave].aulas[diaIndex][aulaIndex] = { disciplina: null, conteudo: '' };
-            dadosSystem.salvarPlanejamentos(planejamentos);
-            renderGradeSemana(semanaIndex);
-            mostrarMensagem('Aula apagada!', 'success');
-        }
-    }
-}
-
-// ========== CONFIGURAÇÕES DO USUÁRIO ==========
-function mostrarConfiguracoes() {
-    const usuario = authSystem.getUsuarioAtual();
-    if (!usuario) return;
-    
-    const modal = document.getElementById('modalConfig');
-    if (!modal) {
-        console.error('Modal de configurações não encontrado');
-        return;
-    }
-    
-    document.getElementById('configNome').value = usuario.nome || '';
-    document.getElementById('configEmail').value = usuario.email || '';
-    document.getElementById('configUnidade').value = usuario.unidade || '';
-    
-    const espacoUsado = calcularEspacoUsado();
-    document.getElementById('espacoUsado').textContent = espacoUsado;
-    
-    modal.classList.add('active');
-}
-
-function fecharConfiguracoes() {
-    const modal = document.getElementById('modalConfig');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-}
-
-function salvarConfiguracoes() {
-    try {
-        const usuario = authSystem.getUsuarioAtual();
-        if (!usuario) throw new Error('Usuário não encontrado');
+        doc.setFontSize(12);
+        doc.setTextColor(0, 71, 182);
+        doc.text(`Semana ${semana.id}: ${formatar(semana.inicio)} a ${formatar(semana.fim)}`, 15, yPos);
+        yPos += 8;
         
-        const nome = document.getElementById('configNome').value.trim();
-        const email = document.getElementById('configEmail').value.trim();
-        const unidade = document.getElementById('configUnidade').value.trim();
+        // Adicionar tabela resumo
+        const tableData = [];
+        const dias = ["SEG", "TER", "QUA", "QUI", "SEX"];
         
-        if (!nome) throw new Error('Nome é obrigatório');
-        if (!email) throw new Error('Email é obrigatório');
-        
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) throw new Error('Email inválido');
-        
-        const dadosAtualizados = {
-            nome: nome,
-            email: email.toLowerCase(),
-            unidade: unidade
-        };
-        
-        if (authSystem.atualizarUsuario(dadosAtualizados)) {
-            document.getElementById('userNome').textContent = nome;
-            document.getElementById('userEmail').textContent = email;
-            document.getElementById('userCumprimento').textContent = nome.split(' ')[0];
-            document.getElementById('professorNome').textContent = nome;
-            document.getElementById('professorUnidade').textContent = unidade;
+        dias.forEach((diaNome, diaIndex) => {
+            const aulasDia = planejamento.aulas[diaIndex] || [];
+            const disciplinas = aulasDia
+                .map(aula => DISCIPLINAS.find(d => d.id === aula.disciplina)?.nome || "")
+                .filter(nome => nome)
+                .join(", ");
             
-            mostrarMensagem('Configurações salvas com sucesso!', 'success');
-            fecharConfiguracoes();
-        } else {
-            throw new Error('Erro ao salvar configurações');
-        }
-        
-    } catch (error) {
-        mostrarMensagem(error.message, 'error');
-    }
-}
-
-function calcularEspacoUsado() {
-    if (!dadosSystem) return '0 KB';
-    
-    let totalBytes = 0;
-    
-    const planejamentos = localStorage.getItem(dadosSystem.chavePlanejamentos);
-    if (planejamentos) totalBytes += new Blob([planejamentos]).size;
-    
-    const config = localStorage.getItem(dadosSystem.chaveConfig);
-    if (config) totalBytes += new Blob([config]).size;
-    
-    if (totalBytes < 1024) return totalBytes + ' bytes';
-    if (totalBytes < 1048576) return (totalBytes / 1024).toFixed(2) + ' KB';
-    return (totalBytes / 1048576).toFixed(2) + ' MB';
-}
-
-function exportarPlanejamentos() {
-    if (!dadosSystem) return;
-    
-    const usuario = authSystem.getUsuarioAtual();
-    const dadosExport = dadosSystem.exportarTodosDados();
-    
-    const dadosCompletos = {
-        ...dadosExport,
-        usuario: {
-            nome: usuario.nome,
-            email: usuario.email,
-            unidade: usuario.unidade,
-            usuario: usuario.usuario
-        },
-        sistema: 'Planejador SESI v4.0',
-        dataExportacao: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(dadosCompletos, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `planejamento-sesi-${usuario.usuario}-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    mostrarMensagem('Planejamentos exportados com sucesso!', 'success');
-}
-
-function limparDadosUsuario() {
-    if (!confirm('⚠️ ATENÇÃO: Isso apagará TODOS os seus planejamentos e configurações. Esta ação não pode ser desfeita. Continuar?')) {
-        return;
-    }
-    
-    if (dadosSystem) {
-        dadosSystem.limparDados();
-        semanas = [];
-        semanaAtual = -1;
-        
-        document.getElementById('listaSemanas').innerHTML = '';
-        document.getElementById('contadorSemanas').textContent = '0 semanas geradas';
-        document.getElementById('periodoTotal').textContent = '';
-        
-        mostrarMensagem('Todos os seus dados foram apagados!', 'success');
-        fecharConfiguracoes();
-    }
-}
-
-// ========== SISTEMA DE MENSAGENS ==========
-function mostrarMensagem(texto, tipo = 'info') {
-    const cores = {
-        success: '#2E7D32',
-        error: '#D32F2F',
-        warning: '#F57C00',
-        info: '#1976D2'
-    };
-    
-    const icones = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️',
-        info: 'ℹ️'
-    };
-    
-    let container = document.getElementById('mensagensContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'mensagensContainer';
-        container.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        `;
-        document.body.appendChild(container);
-    }
-    
-    const mensagem = document.createElement('div');
-    mensagem.style.cssText = `
-        background: ${cores[tipo] || '#1976D2'};
-        color: white;
-        padding: 15px 25px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        animation: slideIn 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        max-width: 400px;
-    `;
-    
-    mensagem.innerHTML = `${icones[tipo] || 'ℹ️'} ${texto}`;
-    container.appendChild(mensagem);
-    
-    setTimeout(() => {
-        mensagem.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => {
-            if (mensagem.parentNode) {
-                mensagem.parentNode.removeChild(mensagem);
+            if (disciplinas) {
+                tableData.push([diaNome, disciplinas]);
             }
-        }, 300);
-    }, 3000);
+        });
+        
+        if (tableData.length > 0) {
+            doc.autoTable({
+                startY: yPos,
+                head: [['Dia', 'Disciplinas']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [0, 71, 182] },
+                margin: { left: 15 }
+            });
+            
+            yPos = doc.lastAutoTable.finalY + 10;
+        } else {
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Sem planejamento registrado", 25, yPos);
+            yPos += 15;
+        }
+        
+        // Quebra de página
+        if (yPos > 270 && semanaIndex < semanas.length - 1) {
+            doc.addPage();
+            pagina++;
+            doc.setPage(pagina);
+            yPos = 20;
+        }
+    });
 }
 
-// ========== INICIALIZAR APLICAÇÃO ==========
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Sistema iniciando...');
-    
-    authSystem = new SistemaAutenticacao();
-    
-    const estilos = document.createElement('style');
-    estilos.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100px); opacity: 0; }
-        }
-        .btn-apagar {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .anotacoes-container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-top: 20px;
-        }
-        .anotacoes-textarea {
-            width: 100%;
-            height: 100px;
-            padding: 15px;
-            border: 2px solid #eee;
-            border-radius: 8px;
-            resize: vertical;
-            font-family: inherit;
-        }
-    `;
-    document.head.appendChild(estilos);
-    
-    if (authSystem.inicializar()) {
-        console.log('Usuário já logado:', authSystem.usuarioAtual);
-        const chaveDados = authSystem.getChaveDadosUsuario();
-        dadosSystem = new SistemaDadosUsuario(chaveDados);
-        iniciarAplicacao();
+// ========== EVENT LISTENERS ADICIONAIS ==========
+btnLogin.addEventListener('click', () => {
+    if (loginEmail.value && loginSenha.value) {
+        realizarLogin(loginEmail.value, loginSenha.value);
     } else {
-        console.log('Mostrando tela de login');
-        const usuarioLembrado = localStorage.getItem('sesi_lembrar_usuario');
-        if (usuarioLembrado) {
-            document.getElementById('loginUsuario').value = usuarioLembrado;
-            document.getElementById('lembrarUsuario').checked = true;
+        alert("Preencha e-mail e senha!");
+    }
+});
+
+btnLogout.addEventListener('click', realizarLogout);
+
+// Enter para login
+loginSenha.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        btnLogin.click();
+    }
+});
+
+btnExportarPDF.addEventListener('click', () => {
+    exportarParaPDF('completo');
+});
+
+btnExportarJSON.addEventListener('click', () => {
+    exportarPlanejamentos(); // Função original mantida
+});
+
+btnExportarDrive.addEventListener('click', () => {
+    if (!driveAutenticado) {
+        abrirModalDrive();
+    } else {
+        mostrarModal(
+            "Salvar no Google Drive",
+            "Escolha o formato para salvar no Drive:",
+            () => {
+                // Exportar como JSON
+                const exportData = prepararDadosExportacao();
+                const nomeArquivo = `planejamento_sesi_${new Date().toISOString().split('T')[0]}.json`;
+                salvarNoDrive(nomeArquivo, exportData, 'application/json');
+            },
+            "JSON",
+            () => {
+                // Exportar como PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                exportarCompletoPDF(doc);
+                const pdfOutput = doc.output('blob');
+                const nomeArquivo = `planejamento_sesi_${new Date().toISOString().split('T')[0]}.pdf`;
+                salvarNoDrive(nomeArquivo, pdfOutput, 'application/pdf');
+            },
+            "PDF"
+        );
+    }
+});
+
+btnExportarSemanaPDF.addEventListener('click', () => {
+    if (semanaAtual !== -1) {
+        exportarParaPDF('semana', semanaAtual);
+    }
+});
+
+btnConectarDrive.addEventListener('click', conectarDrive);
+btnDesconectarDrive.addEventListener('click', desconectarDrive);
+btnFecharDrive.addEventListener('click', () => {
+    modalDrive.classList.add('hidden');
+});
+
+// ========== FUNÇÃO MODAL MODIFICADA ==========
+function mostrarModal(titulo, mensagem, callbackConfirmar, textoConfirmar = "Confirmar", callbackAlternativo = null, textoAlternativo = null) {
+    modalTitulo.textContent = titulo;
+    modalMensagem.textContent = mensagem;
+    modal.classList.remove('hidden');
+    
+    // Limpar botões anteriores
+    modalConfirmar.textContent = textoConfirmar;
+    modalCancelar.textContent = textoAlternativo ? textoAlternativo : "Cancelar";
+    
+    const handler = () => {
+        callbackConfirmar();
+        modal.classList.add('hidden');
+        modalConfirmar.removeEventListener('click', handler);
+        modalCancelar.removeEventListener('click', cancelHandler);
+    };
+    
+    const cancelHandler = () => {
+        if (callbackAlternativo) {
+            callbackAlternativo();
         }
+        modal.classList.add('hidden');
+        modalConfirmar.removeEventListener('click', handler);
+        modalCancelar.removeEventListener('click', cancelHandler);
+    };
+    
+    modalConfirmar.onclick = handler;
+    modalCancelar.onclick = cancelHandler;
+}
+
+// ========== INICIALIZAÇÃO MODIFICADA ==========
+document.addEventListener('DOMContentLoaded', () => {
+    // Verificar login automático
+    if (!verificarLogin()) {
+        // Mostrar página de login
+        paginaLogin.classList.add("active");
+        appPrincipal.classList.add("hidden");
     }
     
-    if (typeof localStorage === 'undefined') {
-        alert('Seu navegador não suporta localStorage. O sistema não funcionará corretamente.');
-    }
+    // Configurar data padrão no input
+    const hoje = new Date();
+    inicioInput.value = hoje.toISOString().split('T')[0];
 });
