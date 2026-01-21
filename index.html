@@ -3,219 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planejador de Aulas - SESI</title>
+    <meta name="description" content="Planejador de Aulas SESI - Grade completa com 7 aulas diárias">
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Estilos para o modal de configurações */
-        #modalConfig {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        #modalConfig.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-        }
-        
-        .modal-content h3 {
-            color: #0047B6;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 10px;
-        }
-        
-        .modal-content h4 {
-            color: #0047B6;
-            margin-bottom: 15px;
-        }
-        
-        .modal-content label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #444;
-        }
-        
-        .modal-content input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-            margin-bottom: 15px;
-        }
-        
-        .modal-content input:focus {
-            outline: none;
-            border-color: #0047B6;
-            box-shadow: 0 0 0 3px rgba(0, 71, 182, 0.1);
-        }
-        
-        .modal-content button {
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: bold;
-        }
-        
-        .modal-content button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-    </style>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+    <!-- Biblioteca para geração de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <!-- Google Drive API -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <title>Planejamento de Aulas - SESI</title>
 </head>
 <body>
-    <!-- Tela de Login -->
-    <div id="telaLogin" class="login-container">
-        <div class="login-box">
-            <div class="login-header">
-                <h1><span class="login-icon">🔒</span> Planejador SESI</h1>
-                <p class="login-subtitle">Sistema seguro de planejamento de aulas</p>
-            </div>
-            
-            <div id="loginForm" class="login-form active">
-                <h2>Acessar Sistema</h2>
-                
-                <div class="form-group">
-                    <label for="loginUsuario">Usuário:</label>
-                    <input type="text" id="loginUsuario" placeholder="Digite seu usuário" value="professor">
+    <!-- Página de Login -->
+    <div id="paginaLogin" class="page active">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <h1><span class="sesi-icon">📚</span> Planejamento SESI</h1>
+                    <p class="subtitle">Acesso restrito ao corpo docente</p>
                 </div>
                 
-                <div class="form-group">
-                    <label for="loginSenha">Senha:</label>
-                    <input type="password" id="loginSenha" placeholder="Digite sua senha" value="sesi2024">
-                </div>
-                
-                <div class="form-options">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="lembrarUsuario"> Lembrar usuário
-                    </label>
-                </div>
-                
-                <button class="btn-login" onclick="fazerLogin()">Entrar</button>
-                
-                <div class="login-footer">
-                    <p>Não tem conta? <a href="#" onclick="mostrarCadastro()" class="link">Cadastre-se</a></p>
-                    <div class="login-demo">
-                        <p><strong>Demo rápida:</strong></p>
-                        <p>Usuário: <code>professor</code> | Senha: <code>sesi2024</code></p>
+                <div class="login-form">
+                    <div class="input-group">
+                        <label for="loginEmail">E-mail Institucional</label>
+                        <input type="email" id="loginEmail" placeholder="seu.email@sesiescola.com.br">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="loginSenha">Senha</label>
+                        <input type="password" id="loginSenha" placeholder="••••••••">
+                    </div>
+                    
+                    <div class="login-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="lembrarLogin">
+                            <span>Lembrar acesso</span>
+                        </label>
+                        <a href="#" class="forgot-password">Esqueceu a senha?</a>
+                    </div>
+                    
+                    <button id="btnLogin" class="btn-login">🔐 Entrar no Sistema</button>
+                    
+                    <div class="login-info">
+                        <p>⚠️ Use suas credenciais do sistema SESI</p>
+                        <p>Contate a coordenação para cadastro</p>
                     </div>
                 </div>
             </div>
-            
-            <div id="cadastroForm" class="login-form">
-                <h2>Criar Conta</h2>
-                
-                <div class="form-group">
-                    <label for="cadastroNome">Nome completo:</label>
-                    <input type="text" id="cadastroNome" placeholder="Seu nome completo">
-                </div>
-                
-                <div class="form-group">
-                    <label for="cadastroUsuario">Usuário:</label>
-                    <input type="text" id="cadastroUsuario" placeholder="Escolha um usuário">
-                </div>
-                
-                <div class="form-group">
-                    <label for="cadastroEmail">Email:</label>
-                    <input type="email" id="cadastroEmail" placeholder="seu@email.com">
-                </div>
-                
-                <div class="form-group">
-                    <label for="cadastroSenha">Senha:</label>
-                    <input type="password" id="cadastroSenha" placeholder="Mínimo 6 caracteres">
-                </div>
-                
-                <div class="form-group">
-                    <label for="cadastroConfirmarSenha">Confirmar senha:</label>
-                    <input type="password" id="cadastroConfirmarSenha" placeholder="Digite novamente">
-                </div>
-                
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="termosUso" required> Concordo com os termos
-                    </label>
-                </div>
-                
-                <button class="btn-login" onclick="fazerCadastro()">Criar Conta</button>
-                
-                <div class="login-footer">
-                    <p>Já tem conta? <a href="#" onclick="mostrarLogin()" class="link">Faça login</a></p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="login-info">
-            <h3>📋 Sistema de Planejamento SESI</h3>
-            <ul>
-                <li>✅ Planejamento semanal com 7 aulas diárias</li>
-                <li>✅ Seleção de disciplinas específicas</li>
-                <li>✅ Salvamento automático no navegador</li>
-                <li>✅ Exportação de dados em JSON</li>
-                <li>✅ Cópia para o SGN</li>
-                <li>✅ Dados protegidos por login</li>
-                <li>✅ Privacidade total entre usuários</li>
-            </ul>
-            <p class="security-note">🔒 Cada usuário tem seus dados totalmente isolados e privados</p>
         </div>
     </div>
-
-    <!-- Aplicação Principal -->
-    <div id="appPrincipal" class="hidden">
-        <!-- Barra Superior -->
-        <div class="top-bar">
-            <div class="user-info">
-                <div class="user-avatar">👤</div>
-                <div class="user-details">
-                    <div id="userNome" class="user-name">Professor</div>
-                    <div id="userEmail" class="user-email">carregando...</div>
-                </div>
-            </div>
-            <div class="top-actions">
-                <button id="btnConfig" class="btn-config" onclick="mostrarConfiguracoes()">⚙️ Config</button>
-                <button id="btnLogout" class="btn-logout" onclick="fazerLogout()">🚪 Sair</button>
-            </div>
-        </div>
-        
-        <!-- Cabeçalho -->
+    
+    <!-- Aplicação Principal (oculta inicialmente) -->
+    <div id="appPrincipal" class="app hidden">
         <header>
             <div class="header-content">
-                <h1><span class="sesi-icon">📚</span> Planejador de Aulas - SESI</h1>
-                <p class="subtitle">Bem-vindo, <span id="userCumprimento">Professor</span>!</p>
+                <div class="header-top">
+                    <h1><span class="sesi-icon">📚</span> Planejamento de Aulas - SESI</h1>
+                    <button id="btnLogout" class="btn-logout">🚪 Sair</button>
+                </div>
+                <p class="subtitle">Grade completa com 7 aulas diárias (45 min cada)</p>
                 
                 <div class="teacher-info">
                     <div class="teacher-card">
-                        <h3>Professor: <span id="professorNome">Carregando...</span></h3>
-                        <p>Unidade: <span id="professorUnidade">Não definida</span></p>
-                        <div class="last-login">
-                            <small>Sistema 100% privado - Seus dados são apenas seus</small>
-                        </div>
+                        <h3>Professor: <span id="professorNome">Lafaiete Teixeira Pereira Erkmann</span></h3>
+                        <p>Unidade: EM Tubarão 2026</p>
+                        <p class="user-email" id="userEmail"></p>
                     </div>
                 </div>
                 
                 <div class="date-control">
                     <label for="inicioLetivo">
                         <strong>Data de início do ano letivo:</strong>
+                        <span class="info">(Clique para selecionar)</span>
                     </label>
                     <div class="date-input-container">
-                        <input type="date" id="inicioLetivo">
+                        <input type="date" id="inicioLetivo" aria-label="Data de início do ano letivo">
                         <button id="btnHoje" class="btn-secondary">Usar data atual</button>
                     </div>
                     <p class="info-small">Serão geradas automaticamente 43 semanas letivas (segunda a sexta-feira)</p>
@@ -223,7 +85,6 @@
             </div>
         </header>
         
-        <!-- Conteúdo Principal -->
         <main>
             <!-- Página: Lista de Semanas -->
             <div id="paginaSemanas" class="page active">
@@ -240,26 +101,46 @@
                         <input type="text" id="buscarSemana" placeholder="Buscar semana por número ou data...">
                         <span class="search-icon">🔍</span>
                     </div>
-                    <button id="btnExportar" class="btn-export">📋 Exportar</button>
+                    <div class="export-buttons">
+                        <button id="btnExportarJSON" class="btn-export">
+                            📋 Exportar JSON
+                        </button>
+                        <button id="btnExportarPDF" class="btn-export-pdf">
+                            📄 Exportar PDF
+                        </button>
+                        <button id="btnExportarDrive" class="btn-export-drive">
+                            ☁️ Salvar no Google Drive
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="listaSemanas" class="semanas-grid"></div>
                 
                 <div class="instructions">
-                    <p><strong>💡 Como usar:</strong> Configure a data de início e clique em uma semana para planejar.</p>
-                    <p><strong>📚 Disciplinas:</strong> Biologia, Biohackeria, Projetos Livres, Robótica, Apps e Games, Iniciação Científica</p>
-                    <p><strong>🔒 Privacidade:</strong> Seus dados são totalmente isolados - outros usuários não podem vê-los</p>
+                    <p>💡 <strong>Como usar:</strong> Clique em uma semana para planejar suas 7 aulas diárias. Cada aula tem 45 minutos.</p>
+                    <p>📚 <strong>Disciplinas disponíveis:</strong> Biologia, Biohackeria, Projetos Livres, Robótica, Apps e Games, Iniciação Científica</p>
+                    <p>🕒 <strong>Horários das aulas:</strong> 07:15 | 08:00 | 08:45 | 09:30 | 10:30 | 11:15 | 12:00</p>
                 </div>
             </div>
 
             <!-- Página: Planejamento da Semana -->
             <div id="paginaAulas" class="page hidden">
                 <div class="week-header">
-                    <button id="voltar" class="btn-voltar">← Voltar para semanas</button>
+                    <button id="voltar" class="btn-voltar" aria-label="Voltar para lista de semanas">
+                        ← Voltar
+                    </button>
                     <div class="week-info">
-                        <h2 id="tituloSemana">Carregando...</h2>
+                        <h2 id="tituloSemana"></h2>
                         <div class="week-actions">
-                            <button id="btnCopiarSemana" class="btn-copy-all" onclick="copiarTodaSemana()">📋 Copiar semana inteira</button>
+                            <button id="btnSalvarSemana" class="btn-save">
+                                💾 Salvar Planejamento
+                            </button>
+                            <button id="btnLimparSemana" class="btn-clear">
+                                🗑️ Limpar Toda Semana
+                            </button>
+                            <button id="btnExportarSemanaPDF" class="btn-export-pdf">
+                                📄 Exportar Esta Semana (PDF)
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -271,76 +152,22 @@
                     <textarea id="anotacoesSemana" placeholder="Anotações gerais para esta semana (objetivos, materiais necessários, observações)..."></textarea>
                     <div class="notes-actions">
                         <button onclick="copiarAnotacoes()" class="btn-copy">📋 Copiar Anotações</button>
+                        <button onclick="copiarTodaSemana()" class="btn-copy-all">📋 Copiar Toda Semana</button>
+                        <span id="statusSalvo" class="save-status"></span>
                     </div>
                 </div>
             </div>
         </main>
         
-        <!-- Rodapé -->
         <footer>
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h4>SESI - Sistema Seguro</h4>
-                    <p>Planejador de Aulas • v4.0</p>
-                    <p><small>Dados 100% privados por usuário</small></p>
-                </div>
-                <div class="footer-section">
-                    <h4>⚠️ Importante</h4>
-                    <p>Faça backup regularmente</p>
-                    <p><small>Use "Exportar" para salvar seus dados</small></p>
-                </div>
-                <div class="footer-section">
-                    <h4>👤 Usuário</h4>
-                    <p><span id="footerUsuario">Carregando...</span></p>
-                    <p><small>Dados isolados e protegidos</small></p>
-                </div>
-            </div>
+            <p>SESI - Serviço Social da Indústria • Sistema de Planejamento de Aulas • v3.0</p>
+            <p class="footer-info">⚠️ Dados salvos localmente no seu navegador • 7 aulas diárias de 45 minutos</p>
+            <p class="footer-info" id="driveStatus">🔒 Google Drive: Não conectado</p>
         </footer>
     </div>
 
-    <!-- Modal de Configurações -->
-    <div id="modalConfig" class="modal">
-        <div class="modal-content">
-            <h3>⚙️ Configurações do Usuário</h3>
-            
-            <div class="config-section">
-                <h4>Perfil</h4>
-                <div class="form-group">
-                    <label for="configNome">Nome:</label>
-                    <input type="text" id="configNome">
-                </div>
-                <div class="form-group">
-                    <label for="configEmail">Email:</label>
-                    <input type="email" id="configEmail">
-                </div>
-                <div class="form-group">
-                    <label for="configUnidade">Unidade:</label>
-                    <input type="text" id="configUnidade" placeholder="Ex: EM Tubarão 2026">
-                </div>
-            </div>
-            
-            <div class="config-section">
-                <h4>Dados</h4>
-                <p>Espaço usado: <strong id="espacoUsado">0 KB</strong></p>
-                <button onclick="salvarConfiguracoes()" class="btn-save-full">
-                    💾 Salvar Alterações
-                </button>
-                <button onclick="exportarPlanejamentos()" class="btn-export-full">
-                    📥 Exportar todos os dados
-                </button>
-                <button onclick="limparDadosUsuario()" class="btn-clear-full">
-                    🗑️ Limpar meus dados
-                </button>
-            </div>
-            
-            <div class="modal-actions">
-                <button onclick="fecharConfiguracoes()" class="btn-cancel">Fechar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Confirmação -->
-    <div id="modalConfirmacao" class="modal hidden">
+    <!-- Modal de confirmação -->
+    <div id="modal" class="modal hidden">
         <div class="modal-content">
             <h3 id="modalTitulo"></h3>
             <p id="modalMensagem"></p>
@@ -348,6 +175,41 @@
                 <button id="modalConfirmar" class="btn-confirm">Confirmar</button>
                 <button id="modalCancelar" class="btn-cancel">Cancelar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal de Configuração do Google Drive -->
+    <div id="modalDrive" class="modal hidden">
+        <div class="modal-content">
+            <h3>📁 Configuração do Google Drive</h3>
+            <p id="driveMensagem">Conecte sua conta do Google para salvar os planejamentos na nuvem.</p>
+            <div id="driveConfig">
+                <div class="input-group">
+                    <label for="drivePasta">Nome da pasta no Drive:</label>
+                    <input type="text" id="drivePasta" value="Planejamentos SESI 2026" placeholder="Nome da pasta">
+                </div>
+                <div class="drive-status">
+                    <p>Status: <span id="driveConnectionStatus">🔴 Não conectado</span></p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="btnConectarDrive" class="btn-confirm">🔗 Conectar Google Drive</button>
+                <button id="btnDesconectarDrive" class="btn-cancel">Desconectar</button>
+                <button id="btnFecharDrive" class="btn-secondary">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dropdown de Disciplinas -->
+    <div id="disciplinaDropdown" class="dropdown hidden">
+        <div class="dropdown-content">
+            <div class="dropdown-item" data-disciplina="biologia">Biologia</div>
+            <div class="dropdown-item" data-disciplina="biohackeria">Biohackeria</div>
+            <div class="dropdown-item" data-disciplina="projetos_livres">Projetos Livres</div>
+            <div class="dropdown-item" data-disciplina="robotica">Robótica</div>
+            <div class="dropdown-item" data-disciplina="apps_games">Apps e Games</div>
+            <div class="dropdown-item" data-disciplina="iniciacao_cientifica">Iniciação Científica</div>
+            <div class="dropdown-item" data-disciplina="outra">Outra</div>
         </div>
     </div>
 
