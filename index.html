@@ -3,213 +3,328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Planejador de Aulas SESI - Grade completa com 7 aulas diárias">
+    <title>Planejador de Aulas</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
-    <!-- Biblioteca para geração de PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <!-- Google Drive API -->
-    <script src="https://apis.google.com/js/api.js"></script>
-    <title>Planejamento de Aulas - SESI</title>
+    <style>
+        .hidden { display: none !important; }
+        .login-container { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .login-box {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        .btn-login {
+            background: #0047B6;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        
+        .grade-cell {
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            min-height: 100px;
+        }
+        .horario-header {
+            background: #0047B6 !important;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px !important;
+        }
+        .dia-header {
+            background: #2A6ED4 !important;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px !important;
+        }
+        .select-disciplina, .select-turma {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .btn-copiar {
+            background: #F2B817;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            flex: 1;
+        }
+        .btn-apagar {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            flex: 1;
+        }
+        .botoes-aula {
+            margin-top: 5px;
+            display: flex;
+            gap: 5px;
+        }
+        .link-recuperacao {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .link-recuperacao a {
+            color: #0047B6;
+            text-decoration: none;
+        }
+        .link-recuperacao a:hover {
+            text-decoration: underline;
+        }
+        .info-ajuda {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <!-- Página de Login -->
-    <div id="paginaLogin" class="page active">
-        <div class="login-container">
-            <div class="login-card">
-                <div class="login-header">
-                    <h1><span class="sesi-icon">📚</span> Planejamento SESI</h1>
-                    <p class="subtitle">Acesso restrito ao corpo docente</p>
+    <div id="telaLogin" class="login-container">
+        <div class="login-box">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #0047B6;">🔒 Planejador de Aulas</h1>
+                <p>Sistema seguro para planejamento escolar</p>
+            </div>
+            
+            <!-- Formulário de Login -->
+            <div id="loginForm">
+                <h2 style="color: #0047B6; margin-bottom: 20px;">Acessar Sistema</h2>
+                
+                <div class="form-group">
+                    <label>Usuário:</label>
+                    <input type="text" id="loginUsuario" placeholder="Digite seu usuário">
                 </div>
                 
-                <div class="login-form">
-                    <div class="input-group">
-                        <label for="loginEmail">E-mail Institucional</label>
-                        <input type="email" id="loginEmail" placeholder="seu.email@sesiescola.com.br">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label for="loginSenha">Senha</label>
-                        <input type="password" id="loginSenha" placeholder="••••••••">
-                    </div>
-                    
-                    <div class="login-options">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="lembrarLogin">
-                            <span>Lembrar acesso</span>
-                        </label>
-                        <a href="#" class="forgot-password">Esqueceu a senha?</a>
-                    </div>
-                    
-                    <button id="btnLogin" class="btn-login">🔐 Entrar no Sistema</button>
-                    
-                    <div class="login-info">
-                        <p>⚠️ Use suas credenciais do sistema SESI</p>
-                        <p>Contate a coordenação para cadastro</p>
-                    </div>
+                <div class="form-group">
+                    <label>Senha:</label>
+                    <input type="password" id="loginSenha" placeholder="Digite sua senha">
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <label>
+                        <input type="checkbox" id="lembrarUsuario"> Lembrar usuário
+                    </label>
+                </div>
+                
+                <button class="btn-login" onclick="fazerLogin()">Entrar</button>
+                
+                <div class="link-recuperacao">
+                    <a href="#" onclick="mostrarRecuperacao()">Esqueci minha senha</a>
+                </div>
+                
+                <div style="margin-top: 20px; text-align: center;">
+                    <p>Não tem conta? <a href="#" onclick="mostrarCadastro()" style="color: #0047B6;">Cadastre-se</a></p>
+                </div>
+            </div>
+            
+            <!-- Formulário de Cadastro -->
+            <div id="cadastroForm" class="hidden">
+                <h2 style="color: #0047B6; margin-bottom: 20px;">Criar Conta</h2>
+                
+                <div class="form-group">
+                    <label>Nome completo:</label>
+                    <input type="text" id="cadastroNome" placeholder="Seu nome completo">
+                </div>
+                
+                <div class="form-group">
+                    <label>Usuário:</label>
+                    <input type="text" id="cadastroUsuario" placeholder="Escolha um usuário">
+                </div>
+                
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="cadastroEmail" placeholder="seu@email.com">
+                </div>
+                
+                <div class="form-group">
+                    <label>Senha:</label>
+                    <input type="password" id="cadastroSenha" placeholder="Mínimo 6 caracteres">
+                </div>
+                
+                <div class="form-group">
+                    <label>Confirmar senha:</label>
+                    <input type="password" id="cadastroConfirmarSenha" placeholder="Digite novamente">
+                </div>
+                
+                <div style="margin: 15px 0;">
+                    <label>
+                        <input type="checkbox" id="termosUso"> Concordo com os termos
+                    </label>
+                </div>
+                
+                <button class="btn-login" onclick="fazerCadastro()">Criar Conta</button>
+                
+                <div style="margin-top: 20px; text-align: center;">
+                    <p>Já tem conta? <a href="#" onclick="mostrarLogin()" style="color: #0047B6;">Faça login</a></p>
+                </div>
+            </div>
+            
+            <!-- Formulário de Recuperação de Senha -->
+            <div id="recuperacaoForm" class="hidden">
+                <h2 style="color: #0047B6; margin-bottom: 20px;">Recuperar Senha</h2>
+                
+                <div class="form-group">
+                    <label>Email cadastrado:</label>
+                    <input type="email" id="recuperacaoEmail" placeholder="Digite o email da sua conta">
+                </div>
+                
+                <div class="form-group">
+                    <label>Usuário:</label>
+                    <input type="text" id="recuperacaoUsuario" placeholder="Digite seu usuário">
+                </div>
+                
+                <button class="btn-login" onclick="iniciarRecuperacao()">Enviar Link de Recuperação</button>
+                
+                <div style="margin-top: 20px; text-align: center;">
+                    <p>Lembrou a senha? <a href="#" onclick="mostrarLogin()" style="color: #0047B6;">Fazer login</a></p>
+                </div>
+            </div>
+            
+            <!-- Formulário de Nova Senha -->
+            <div id="novaSenhaForm" class="hidden">
+                <h2 style="color: #0047B6; margin-bottom: 20px;">Nova Senha</h2>
+                
+                <div class="form-group">
+                    <label>Código de verificação:</label>
+                    <input type="text" id="codigoVerificacao" placeholder="Código enviado por email">
+                </div>
+                
+                <div class="form-group">
+                    <label>Nova senha:</label>
+                    <input type="password" id="novaSenha" placeholder="Mínimo 6 caracteres">
+                </div>
+                
+                <div class="form-group">
+                    <label>Confirmar nova senha:</label>
+                    <input type="password" id="confirmarNovaSenha" placeholder="Digite novamente">
+                </div>
+                
+                <button class="btn-login" onclick="definirNovaSenha()">Definir Nova Senha</button>
+                
+                <div style="margin-top: 20px; text-align: center;">
+                    <p><a href="#" onclick="mostrarRecuperacao()" style="color: #0047B6;">Voltar para recuperação</a></p>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Aplicação Principal (oculta inicialmente) -->
-    <div id="appPrincipal" class="app hidden">
-        <header>
-            <div class="header-content">
-                <div class="header-top">
-                    <h1><span class="sesi-icon">📚</span> Planejamento de Aulas - SESI</h1>
-                    <button id="btnLogout" class="btn-logout">🚪 Sair</button>
-                </div>
-                <p class="subtitle">Grade completa com 7 aulas diárias (45 min cada)</p>
-                
-                <div class="teacher-info">
-                    <div class="teacher-card">
-                        <h3>Professor: <span id="professorNome">Lafaiete Teixeira Pereira Erkmann</span></h3>
-                        <p>Unidade: EM Tubarão 2026</p>
-                        <p class="user-email" id="userEmail"></p>
-                    </div>
-                </div>
-                
-                <div class="date-control">
-                    <label for="inicioLetivo">
-                        <strong>Data de início do ano letivo:</strong>
-                        <span class="info">(Clique para selecionar)</span>
-                    </label>
-                    <div class="date-input-container">
-                        <input type="date" id="inicioLetivo" aria-label="Data de início do ano letivo">
-                        <button id="btnHoje" class="btn-secondary">Usar data atual</button>
-                    </div>
-                    <p class="info-small">Serão geradas automaticamente 43 semanas letivas (segunda a sexta-feira)</p>
-                </div>
-            </div>
-        </header>
-        
-        <main>
-            <!-- Página: Lista de Semanas -->
-            <div id="paginaSemanas" class="page active">
-                <div class="page-header">
-                    <h2>Semanas Letivas</h2>
-                    <div class="stats">
-                        <span id="contadorSemanas">0 semanas geradas</span>
-                        <span id="periodoTotal"></span>
-                    </div>
-                </div>
-                
-                <div class="controls">
-                    <div class="search-box">
-                        <input type="text" id="buscarSemana" placeholder="Buscar semana por número ou data...">
-                        <span class="search-icon">🔍</span>
-                    </div>
-                    <div class="export-buttons">
-                        <button id="btnExportarJSON" class="btn-export">
-                            📋 Exportar JSON
-                        </button>
-                        <button id="btnExportarPDF" class="btn-export-pdf">
-                            📄 Exportar PDF
-                        </button>
-                        <button id="btnExportarDrive" class="btn-export-drive">
-                            ☁️ Salvar no Google Drive
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="listaSemanas" class="semanas-grid"></div>
-                
-                <div class="instructions">
-                    <p>💡 <strong>Como usar:</strong> Clique em uma semana para planejar suas 7 aulas diárias. Cada aula tem 45 minutos.</p>
-                    <p>📚 <strong>Disciplinas disponíveis:</strong> Biologia, Biohackeria, Projetos Livres, Robótica, Apps e Games, Iniciação Científica</p>
-                    <p>🕒 <strong>Horários das aulas:</strong> 07:15 | 08:00 | 08:45 | 09:30 | 10:30 | 11:15 | 12:00</p>
-                </div>
-            </div>
 
-            <!-- Página: Planejamento da Semana -->
-            <div id="paginaAulas" class="page hidden">
-                <div class="week-header">
-                    <button id="voltar" class="btn-voltar" aria-label="Voltar para lista de semanas">
-                        ← Voltar
-                    </button>
-                    <div class="week-info">
-                        <h2 id="tituloSemana"></h2>
-                        <div class="week-actions">
-                            <button id="btnSalvarSemana" class="btn-save">
-                                💾 Salvar Planejamento
-                            </button>
-                            <button id="btnLimparSemana" class="btn-clear">
-                                🗑️ Limpar Toda Semana
-                            </button>
-                            <button id="btnExportarSemanaPDF" class="btn-export-pdf">
-                                📄 Exportar Esta Semana (PDF)
+    <div id="appPrincipal" class="hidden">
+        <div style="background: #0047B6; color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="margin: 0;">📚 Planejador de Aulas</h1>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">Bem-vindo, <span id="userCumprimento">Professor</span>!</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="abrirConfiguracaoHorario()" style="background: #F2B817; color: #1d1d1b; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                    🕐 Meu Horário
+                </button>
+                <!-- Botão de Administração (somente para superusuário) -->
+                <button id="btnAdmin" class="hidden" onclick="abrirPainelAdmin()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                    ⚙️ Administração
+                </button>
+                <button onclick="fazerLogout()" style="background: #F2B817; color: #1d1d1b; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                    🚪 Sair
+                </button>
+            </div>
+        </div>
+        
+        <div style="max-width: 1400px; margin: 0 auto; padding: 20px;">
+            <div style="margin: 30px 0;">
+                <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold;">Data de início do ano letivo:</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="date" id="inicioLetivo" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                            <button id="btnHoje" style="background: #f0f0f0; border: 1px solid #ddd; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                                Usar hoje
                             </button>
                         </div>
                     </div>
+                    <button onclick="exportarParaDOC()" style="background: #2E7D32; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                        📋 Exportar DOC
+                    </button>
                 </div>
-                
-                <div id="gradeSemana" class="grade-container"></div>
-                
-                <div class="notes-section">
-                    <h3>📝 Anotações da Semana</h3>
-                    <textarea id="anotacoesSemana" placeholder="Anotações gerais para esta semana (objetivos, materiais necessários, observações)..."></textarea>
-                    <div class="notes-actions">
-                        <button onclick="copiarAnotacoes()" class="btn-copy">📋 Copiar Anotações</button>
-                        <button onclick="copiarTodaSemana()" class="btn-copy-all">📋 Copiar Toda Semana</button>
-                        <span id="statusSalvo" class="save-status"></span>
+                <div style="margin-top: 10px; color: #666; font-size: 14px;">
+                    <span id="statusHorario">⚠️ Configure seu horário primeiro</span>
+                </div>
+            </div>
+            
+            <div id="paginaSemanas">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                    <h2>Semanas Letivas</h2>
+                    <div style="background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div id="contadorSemanas">0 semanas geradas</div>
                     </div>
                 </div>
-            </div>
-        </main>
-        
-        <footer>
-            <p>SESI - Serviço Social da Indústria • Sistema de Planejamento de Aulas • v3.0</p>
-            <p class="footer-info">⚠️ Dados salvos localmente no seu navegador • 7 aulas diárias de 45 minutos</p>
-            <p class="footer-info" id="driveStatus">🔒 Google Drive: Não conectado</p>
-        </footer>
-    </div>
-
-    <!-- Modal de confirmação -->
-    <div id="modal" class="modal hidden">
-        <div class="modal-content">
-            <h3 id="modalTitulo"></h3>
-            <p id="modalMensagem"></p>
-            <div class="modal-actions">
-                <button id="modalConfirmar" class="btn-confirm">Confirmar</button>
-                <button id="modalCancelar" class="btn-cancel">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Configuração do Google Drive -->
-    <div id="modalDrive" class="modal hidden">
-        <div class="modal-content">
-            <h3>📁 Configuração do Google Drive</h3>
-            <p id="driveMensagem">Conecte sua conta do Google para salvar os planejamentos na nuvem.</p>
-            <div id="driveConfig">
-                <div class="input-group">
-                    <label for="drivePasta">Nome da pasta no Drive:</label>
-                    <input type="text" id="drivePasta" value="Planejamentos SESI 2026" placeholder="Nome da pasta">
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;" id="listaSemanas">
                 </div>
-                <div class="drive-status">
-                    <p>Status: <span id="driveConnectionStatus">🔴 Não conectado</span></p>
+                
+                <div style="background: #fff8e1; padding: 20px; border-radius: 8px; border-left: 4px solid #F2B817;">
+                    <p><strong>💡 Como usar:</strong></p>
+                    <p>1. Clique em "Meu Horário" para configurar seu horário semanal</p>
+                    <p>2. Configure a data de início do ano letivo</p>
+                    <p>3. Clique em uma semana para planejar suas aulas</p>
+                    <p>4. Use "Exportar DOC" para salvar seu planejamento em Word</p>
+                    <p><strong>📚 Disciplinas:</strong> Biologia, Biohackeria, Projetos Livres, Robótica, Apps e Games, Iniciação Científica</p>
+                    <p><strong>🏫 Turmas:</strong> 101, 102, 201, 202, 301, 302</p>
                 </div>
             </div>
-            <div class="modal-actions">
-                <button id="btnConectarDrive" class="btn-confirm">🔗 Conectar Google Drive</button>
-                <button id="btnDesconectarDrive" class="btn-cancel">Desconectar</button>
-                <button id="btnFecharDrive" class="btn-secondary">Fechar</button>
+            
+            <div id="paginaAulas" class="hidden">
+                <div style="margin-bottom: 30px;">
+                    <button id="voltar" style="background: none; border: none; color: #0047B6; font-size: 16px; cursor: pointer; padding: 10px 0; margin-bottom: 20px;">
+                        ← Voltar para semanas
+                    </button>
+                    <h2 id="tituloSemana"></h2>
+                    <button onclick="exportarSemanaDOC()" style="background: #2E7D32; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                        📄 Exportar Esta Semana (DOC)
+                    </button>
+                    <button onclick="apagarTodaSemana()" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-top: 10px; margin-left: 10px;">
+                        🗑️ Apagar Toda a Semana
+                    </button>
+                </div>
+                
+                <div id="gradeSemana"></div>
             </div>
-        </div>
-    </div>
-
-    <!-- Dropdown de Disciplinas -->
-    <div id="disciplinaDropdown" class="dropdown hidden">
-        <div class="dropdown-content">
-            <div class="dropdown-item" data-disciplina="biologia">Biologia</div>
-            <div class="dropdown-item" data-disciplina="biohackeria">Biohackeria</div>
-            <div class="dropdown-item" data-disciplina="projetos_livres">Projetos Livres</div>
-            <div class="dropdown-item" data-disciplina="robotica">Robótica</div>
-            <div class="dropdown-item" data-disciplina="apps_games">Apps e Games</div>
-            <div class="dropdown-item" data-disciplina="iniciacao_cientifica">Iniciação Científica</div>
-            <div class="dropdown-item" data-disciplina="outra">Outra</div>
         </div>
     </div>
 
