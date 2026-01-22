@@ -1,224 +1,126 @@
-/* ========== ESTILOS DE LOGIN ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+body {
+    background: #f5f7fa;
+    color: #333;
+}
+
+.hidden {
+    display: none !important;
+}
+
 .login-container {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, var(--sesi-azul) 0%, var(--sesi-azul-claro) 100%);
     padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.login-card {
-    background: var(--sesi-branco);
-    border-radius: var(--borda-arredondada);
+.login-box {
+    background: white;
+    border-radius: 12px;
     padding: 40px;
     width: 100%;
-    max-width: 450px;
-    box-shadow: var(--sombra-forte);
+    max-width: 400px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
 }
 
-.login-header {
+.login-box h1 {
+    color: #0047B6;
     text-align: center;
-    margin-bottom: 30px;
-}
-
-.login-header h1 {
-    color: var(--sesi-azul);
-    font-size: 2rem;
     margin-bottom: 10px;
 }
 
-.login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+.login-box h2 {
+    color: #0047B6;
+    margin-bottom: 20px;
 }
 
-.input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.form-group {
+    margin-bottom: 15px;
 }
 
-.input-group label {
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
     font-weight: 600;
-    color: var(--sesi-cinza-escuro);
+    color: #444;
 }
 
-.input-group input {
-    padding: 14px;
-    border: 2px solid #e9ecef;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: var(--transicao);
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
 }
 
-.input-group input:focus {
+.form-group input:focus {
     outline: none;
-    border-color: var(--sesi-azul);
+    border-color: #0047B6;
     box-shadow: 0 0 0 3px rgba(0, 71, 182, 0.1);
 }
 
-.login-options {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 10px 0;
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-}
-
-.checkbox-label input {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-}
-
-.forgot-password {
-    color: var(--sesi-azul);
-    text-decoration: none;
-    font-size: 0.9rem;
-}
-
-.forgot-password:hover {
-    text-decoration: underline;
-}
-
 .btn-login {
-    background: var(--sesi-azul);
+    background: linear-gradient(135deg, #0047B6 0%, #2A6ED4 100%);
     color: white;
-    padding: 16px;
-    font-size: 1.1rem;
+    border: none;
+    padding: 14px;
     border-radius: 8px;
-    margin-top: 10px;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
 }
 
 .btn-login:hover {
-    background: var(--sesi-azul-claro);
     transform: translateY(-2px);
 }
 
-.login-info {
-    margin-top: 20px;
-    padding: 15px;
-    background: rgba(242, 184, 23, 0.1);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    text-align: center;
-    color: #666;
-}
-
-/* ========== BOTÕES DE EXPORTAÇÃO ========== */
-.export-buttons {
+#appPrincipal {
+    min-height: 100vh;
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+    flex-direction: column;
 }
 
-.btn-export-pdf {
-    background: #dc3545;
+header {
+    background: linear-gradient(135deg, #0047B6 0%, #2A6ED4 100%);
     color: white;
+    padding: 20px 30px;
 }
 
-.btn-export-pdf:hover {
-    background: #c82333;
+button {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+button:hover {
     transform: translateY(-2px);
 }
 
-.btn-export-drive {
-    background: #34a853;
-    color: white;
+button:active {
+    transform: translateY(0);
 }
 
-.btn-export-drive:hover {
-    background: #2d9249;
-    transform: translateY(-2px);
+.grade-container {
+    overflow-x: auto;
+    margin: 20px 0;
 }
 
-.btn-logout {
-    background: transparent;
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    padding: 8px 16px;
-    border-radius: 6px;
-}
-
-.btn-logout:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: white;
-}
-
-.header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.user-email {
-    font-size: 0.9rem;
-    opacity: 0.8;
-    margin-top: 5px;
-}
-
-/* ========== MODAL GOOGLE DRIVE ========== */
-.drive-status {
-    margin: 15px 0;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    text-align: center;
-}
-
-#driveConnectionStatus {
-    font-weight: bold;
-}
-
-#driveConnectionStatus.connected {
-    color: var(--sesi-verde);
-}
-
-#driveConnectionStatus.disconnected {
-    color: var(--sesi-vermelho);
-}
-
-/* ========== RESPONSIVIDADE ADICIONAL ========== */
 @media (max-width: 768px) {
-    .login-card {
-        padding: 25px;
+    .login-box {
+        padding: 30px 20px;
     }
     
-    .export-buttons {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .header-top {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-    }
-    
-    .btn-logout {
-        align-self: flex-end;
-    }
-}
-
-@media (max-width: 480px) {
     .login-container {
         padding: 10px;
-    }
-    
-    .login-card {
-        padding: 20px;
-    }
-    
-    .login-header h1 {
-        font-size: 1.6rem;
     }
 }
