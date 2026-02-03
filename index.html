@@ -6,15 +6,32 @@
     <title>Planejador de Aulas</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .hidden { display: none !important; }
-        .login-container { 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Estilos do Login */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+
         .login-box {
             background: white;
             border-radius: 12px;
@@ -23,6 +40,7 @@
             max-width: 450px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.12);
         }
+
         .btn-login {
             background: #0047B6;
             color: white;
@@ -33,11 +51,25 @@
             font-size: 16px;
             cursor: pointer;
             margin-top: 20px;
+            transition: background 0.3s;
         }
+
+        .btn-login:hover {
+            background: #003399;
+        }
+
         .form-group {
             margin-bottom: 15px;
             position: relative;
         }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #444;
+        }
+
         .form-group input {
             width: 100%;
             padding: 10px 40px 10px 10px;
@@ -45,96 +77,115 @@
             border-radius: 6px;
             font-size: 16px;
         }
+
         .password-toggle {
             position: absolute;
             right: 10px;
             top: 35px;
             cursor: pointer;
             color: #666;
+            font-size: 18px;
         }
+
         .password-toggle:hover {
             color: #0047B6;
         }
-        
-        .grade-cell {
-            padding: 8px;
-            border: 1px solid #e0e0e0;
-            background: white;
-            min-height: 100px;
-        }
-        .horario-header {
-            background: #0047B6 !important;
+
+        /* Estilos do Aplicativo Principal */
+        .header-app {
+            background: #0047B6;
             color: white;
-            font-weight: bold;
-            text-align: center;
-            padding: 10px !important;
-        }
-        .dia-header {
-            background: #2A6ED4 !important;
-            color: white;
-            font-weight: bold;
-            text-align: center;
-            padding: 10px !important;
-        }
-        .select-disciplina, .select-turma {
-            width: 100%;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-bottom: 5px;
-        }
-        .btn-copiar {
-            background: #F2B817;
-            border: none;
-            padding: 3px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
-            flex: 1;
-        }
-        .btn-apagar {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 3px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
-            flex: 1;
-        }
-        .botoes-aula {
-            margin-top: 5px;
+            padding: 20px 30px;
             display: flex;
-            gap: 5px;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .link-recuperacao {
-            text-align: center;
-            margin-top: 15px;
+
+        .header-app h1 {
+            margin: 0;
+            font-size: 24px;
         }
-        .link-recuperacao a {
-            color: #0047B6;
-            text-decoration: none;
-        }
-        .link-recuperacao a:hover {
-            text-decoration: underline;
-        }
-        .rodape-autor {
-            text-align: center;
-            padding: 20px;
-            margin-top: 40px;
-            color: #666;
+
+        .header-app p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
             font-size: 14px;
-            border-top: 1px solid #e0e0e0;
         }
-        .rodape-autor a {
-            color: #0047B6;
-            text-decoration: none;
-            font-weight: bold;
+
+        .btn-header {
+            background: #F2B817;
+            color: #1d1d1b;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
         }
-        .rodape-autor a:hover {
-            text-decoration: underline;
+
+        .btn-header:hover {
+            transform: translateY(-2px);
         }
+
+        .btn-admin {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-escola {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-sair {
+            background: #F2B817;
+            color: #1d1d1b;
+        }
+
+        /* Conteúdo Principal */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .config-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .periodo-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .periodo-btn {
+            padding: 8px 15px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .periodo-btn:hover {
+            border-color: #0047B6;
+        }
+
+        .periodo-btn.active {
+            background: #0047B6;
+            color: white;
+            border-color: #0047B6;
+        }
+
+        /* Cards de Semana */
         .semana-card {
             background: white;
             padding: 15px;
@@ -148,24 +199,29 @@
             flex-direction: column;
             justify-content: center;
         }
+
         .semana-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
+
         .semana-card h4 {
             margin: 0 0 5px 0;
             color: #0047B6;
             font-size: 16px;
         }
+
         .semana-card p {
             margin: 0;
             color: #666;
             font-size: 12px;
         }
+
         .semana-card small {
             color: #999;
             font-size: 11px;
         }
+
         .badge-status {
             display: inline-block;
             padding: 2px 8px;
@@ -174,74 +230,235 @@
             font-weight: bold;
             margin-top: 5px;
         }
+
         .badge-vazia {
             background: #ffebee;
             color: #c62828;
         }
+
         .badge-parcial {
             background: #fff3e0;
             color: #ef6c00;
         }
+
         .badge-completa {
             background: #e8f5e8;
             color: #2e7d32;
         }
-        .periodo-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+
+        /* Grade de Horário */
+        .grade-container {
+            overflow-x: auto;
+            margin: 20px 0;
         }
-        .periodo-btn {
-            padding: 8px 15px;
-            border: 2px solid #ddd;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
+
+        .grade-horario {
+            display: grid;
+            grid-template-columns: 100px repeat(5, 1fr);
+            gap: 1px;
+            background: #f0f0f0;
+            border: 1px solid #f0f0f0;
+            min-width: 800px;
         }
-        .periodo-btn:hover {
-            border-color: #0047B6;
-        }
-        .periodo-btn.active {
+
+        .grade-header {
             background: #0047B6;
             color: white;
-            border-color: #0047B6;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
         }
-        .config-item {
+
+        .grade-cell {
+            background: white;
+            padding: 10px;
+            min-height: 120px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .grade-cell-vazia {
+            background: #f9f9f9;
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        /* Rodapé */
+        .rodape-autor {
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .rodape-autor a {
+            color: #0047B6;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .rodape-autor a:hover {
+            text-decoration: underline;
+        }
+
+        /* Formulários */
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #444;
+        }
+
+        .input-group input,
+        .input-group select,
+        .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .input-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* Botões */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #0047B6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #003399;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #666;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #555;
+        }
+
+        /* Disciplinas e Turmas */
+        .lista-itens {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        .item-card {
             background: #f8f9fa;
             padding: 10px;
             border-radius: 6px;
-            margin-bottom: 10px;
-            border: 1px solid #e0e0e0;
-        }
-        .horario-config {
-            background: #f0f8ff;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border: 1px solid #cce5ff;
-        }
-        .disciplina-item {
-            background: white;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             border: 1px solid #e0e0e0;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .config-section {
-            background: white;
+
+        .item-card:hover {
+            background: #e9ecef;
+        }
+
+        .btn-remover {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .btn-remover:hover {
+            background: #c82333;
+        }
+
+        /* Help Box */
+        .help-box {
+            background: #fff8e1;
             padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            border-left: 4px solid #F2B817;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
+    <!-- Tela de Login -->
     <div id="telaLogin" class="login-container">
         <div class="login-box">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -272,12 +489,14 @@
                 
                 <button class="btn-login" onclick="fazerLogin()">Entrar</button>
                 
-                <div class="link-recuperacao">
-                    <a href="#" onclick="mostrarRecuperacao()">Esqueci minha senha</a>
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="#" onclick="mostrarRecuperacao()" style="color: #0047B6; text-decoration: none;">
+                        Esqueci minha senha
+                    </a>
                 </div>
                 
                 <div style="margin-top: 20px; text-align: center;">
-                    <p>Não tem conta? <a href="#" onclick="mostrarCadastro()" style="color: #0047B6;">Cadastre-se</a></p>
+                    <p>Não tem conta? <a href="#" onclick="mostrarCadastro()" style="color: #0047B6; font-weight: bold;">Cadastre-se</a></p>
                 </div>
             </div>
             
@@ -321,11 +540,11 @@
                 <button class="btn-login" onclick="fazerCadastro()">Criar Conta</button>
                 
                 <div style="margin-top: 20px; text-align: center;">
-                    <p>Já tem conta? <a href="#" onclick="mostrarLogin()" style="color: #0047B6;">Faça login</a></p>
+                    <p>Já tem conta? <a href="#" onclick="mostrarLogin()" style="color: #0047B6; font-weight: bold;">Faça login</a></p>
                 </div>
             </div>
             
-            <!-- Formulário de Recuperação de Senha -->
+            <!-- Formulário de Recuperação -->
             <div id="recuperacaoForm" class="hidden">
                 <h2 style="color: #0047B6; margin-bottom: 20px;">Recuperar Senha</h2>
                 
@@ -342,7 +561,7 @@
                 <button class="btn-login" onclick="iniciarRecuperacao()">Enviar Link de Recuperação</button>
                 
                 <div style="margin-top: 20px; text-align: center;">
-                    <p>Lembrou a senha? <a href="#" onclick="mostrarLogin()" style="color: #0047B6;">Fazer login</a></p>
+                    <p>Lembrou a senha? <a href="#" onclick="mostrarLogin()" style="color: #0047B6; font-weight: bold;">Fazer login</a></p>
                 </div>
             </div>
             
@@ -370,104 +589,120 @@
                 <button class="btn-login" onclick="definirNovaSenha()">Definir Nova Senha</button>
                 
                 <div style="margin-top: 20px; text-align: center;">
-                    <p><a href="#" onclick="mostrarRecuperacao()" style="color: #0047B6;">Voltar para recuperação</a></p>
+                    <p><a href="#" onclick="mostrarRecuperacao()" style="color: #0047B6; font-weight: bold;">Voltar para recuperação</a></p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Aplicativo Principal -->
     <div id="appPrincipal" class="hidden">
-        <div style="background: #0047B6; color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center;">
+        <!-- Header -->
+        <div class="header-app">
             <div>
-                <h1 style="margin: 0;">📚 Planejador de Aulas</h1>
-                <p style="margin: 5px 0 0 0; opacity: 0.9;">Bem-vindo, <span id="userCumprimento">Professor</span>!</p>
+                <h1>📚 Planejador de Aulas</h1>
+                <p>Bem-vindo, <span id="userCumprimento">Professor</span>!</p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button onclick="abrirConfiguracaoHorario()" style="background: #F2B817; color: #1d1d1b; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
-                    🕐 Meu Horário
-                </button>
-                <button onclick="abrirConfiguracaoEscola()" style="background: #17a2b8; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                <button onclick="abrirConfiguracaoEscola()" class="btn-header btn-escola">
                     🏫 Escola
                 </button>
-                <!-- Botão de Administração (somente para superusuário) -->
-                <button id="btnAdmin" class="hidden" onclick="abrirPainelAdmin()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                <button onclick="abrirConfiguracaoHorario()" class="btn-header">
+                    🕐 Meu Horário
+                </button>
+                <button id="btnAdmin" class="btn-header btn-admin hidden" onclick="abrirPainelAdmin()">
                     ⚙️ Administração
                 </button>
-                <button onclick="fazerLogout()" style="background: #F2B817; color: #1d1d1b; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                <button onclick="fazerLogout()" class="btn-header btn-sair">
                     🚪 Sair
                 </button>
             </div>
         </div>
-        
-        <div style="max-width: 1400px; margin: 0 auto; padding: 20px;">
-            <div style="margin: 30px 0;">
-                <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
-                    <div>
-                        <label style="display: block; margin-bottom: 8px; font-weight: bold;">Data de início do ano letivo:</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="date" id="inicioLetivo" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+
+        <!-- Conteúdo Principal -->
+        <div class="main-content">
+            <!-- Configuração Inicial -->
+            <div id="paginaSemanas">
+                <div style="margin: 30px 0;">
+                    <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+                        <div class="input-group" style="flex: 1;">
+                            <label>Data de início do ano letivo:</label>
+                            <input type="date" id="inicioLetivo" style="padding: 10px;">
+                        </div>
+                        <button onclick="gerarSemanas()" class="btn btn-primary" style="align-self: flex-end;">
+                            📅 Gerar Semanas
+                        </button>
+                        <button onclick="exportarParaDOC()" class="btn btn-success" style="align-self: flex-end;">
+                            📋 Exportar DOC
+                        </button>
+                    </div>
+                    <div id="statusHorario" style="color: #666; font-size: 14px;">
+                        ⚠️ Configure sua escola e horário primeiro
+                    </div>
+                </div>
+
+                <!-- Lista de Semanas -->
+                <div class="config-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>Semanas Letivas</h2>
+                        <div style="background: #f8f9fa; padding: 10px 20px; border-radius: 8px;">
+                            <div id="contadorSemanas">0 semanas geradas</div>
                         </div>
                     </div>
-                    <button onclick="exportarParaDOC()" style="background: #2E7D32; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
-                        📋 Exportar DOC
-                    </button>
-                </div>
-                <div style="margin-top: 10px; color: #666; font-size: 14px;">
-                    <span id="statusHorario">⚠️ Configure seu horário primeiro</span>
-                </div>
-            </div>
-            
-            <div id="paginaSemanas">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                    <h2>Semanas Letivas</h2>
-                    <div style="background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <div id="contadorSemanas">0 semanas geradas</div>
+
+                    <!-- Filtros -->
+                    <div class="periodo-selector">
+                        <button class="periodo-btn active" onclick="filtrarSemanas('todas')">Todas</button>
+                        <button class="periodo-btn" onclick="filtrarSemanas('vazias')">Vazias</button>
+                        <button class="periodo-btn" onclick="filtrarSemanas('parciais')">Parciais</button>
+                        <button class="periodo-btn" onclick="filtrarSemanas('completas')">Completas</button>
+                        <input type="text" id="filtroSemana" placeholder="Buscar semana..." style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; flex: 1;" 
+                               oninput="filtrarSemanasPorBusca()">
+                    </div>
+
+                    <!-- Grade de Semanas -->
+                    <div id="listaSemanas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                        <!-- As semanas serão geradas aqui -->
                     </div>
                 </div>
-                
-                <!-- Seletor de período -->
-                <div class="periodo-selector">
-                    <button class="periodo-btn active" onclick="filtrarSemanas('todas')">Todas as Semanas</button>
-                    <button class="periodo-btn" onclick="filtrarSemanas('vazias')">Vazias</button>
-                    <button class="periodo-btn" onclick="filtrarSemanas('parciais')">Parciais</button>
-                    <button class="periodo-btn" onclick="filtrarSemanas('completas')">Completas</button>
-                    <input type="text" id="filtroSemana" placeholder="Buscar semana..." style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; flex: 1;" oninput="filtrarSemanasPorBusca()">
-                </div>
-                
-                <!-- Grade de semanas com layout melhorado -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;" id="listaSemanas">
-                </div>
-                
-                <div style="background: #fff8e1; padding: 20px; border-radius: 8px; border-left: 4px solid #F2B817;">
+
+                <!-- Ajuda -->
+                <div class="help-box">
                     <p><strong>💡 Como usar:</strong></p>
-                    <p>1. Clique em "Escola" para cadastrar os dados da sua escola</p>
-                    <p>2. Clique em "Meu Horário" para configurar suas disciplinas e horários</p>
-                    <p>3. Configure a data de início do ano letivo</p>
+                    <p>1. Clique em "🏫 Escola" para cadastrar os dados da sua escola</p>
+                    <p>2. Clique em "🕐 Meu Horário" para configurar suas disciplinas e horários</p>
+                    <p>3. Configure a data de início do ano letivo e clique em "Gerar Semanas"</p>
                     <p>4. Clique em uma semana para planejar suas aulas</p>
                     <p>5. Use "Exportar DOC" para salvar seu planejamento em Word</p>
                     <p><strong>📚 Disciplinas cadastradas:</strong> <span id="disciplinasLista">0 disciplinas</span></p>
                 </div>
             </div>
-            
+
+            <!-- Página de Aulas -->
             <div id="paginaAulas" class="hidden">
                 <div style="margin-bottom: 30px;">
-                    <button id="voltar" style="background: none; border: none; color: #0047B6; font-size: 16px; cursor: pointer; padding: 10px 0; margin-bottom: 20px;">
+                    <button id="voltar" onclick="voltarParaSemanas()" style="background: none; border: none; color: #0047B6; font-size: 16px; cursor: pointer; padding: 10px 0; margin-bottom: 20px;">
                         ← Voltar para semanas
                     </button>
                     <h2 id="tituloSemana"></h2>
-                    <button onclick="exportarSemanaDOC()" style="background: #2E7D32; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
-                        📄 Exportar Esta Semana (DOC)
-                    </button>
-                    <button onclick="apagarTodaSemana()" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-top: 10px; margin-left: 10px;">
-                        🗑️ Apagar Toda a Semana
-                    </button>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button onclick="exportarSemanaDOC()" class="btn btn-success">
+                            📄 Exportar Esta Semana
+                        </button>
+                        <button onclick="apagarTodaSemana()" class="btn btn-danger">
+                            🗑️ Apagar Toda a Semana
+                        </button>
+                    </div>
                 </div>
-                
-                <div id="gradeSemana"></div>
+
+                <!-- Grade da Semana -->
+                <div id="gradeSemana" class="config-section">
+                    <!-- A grade será gerada aqui -->
+                </div>
             </div>
         </div>
-        
-        <!-- Rodapé com informações do autor -->
+
+        <!-- Rodapé -->
         <div class="rodape-autor">
             <p>Sistema desenvolvido por <strong>Lafaiete Erkmann</strong> • Contato: <a href="https://instagram.com/lafa.bio" target="_blank">@lafa.bio</a></p>
             <p style="font-size: 12px; margin-top: 5px;">Planejador de Aulas © 2024</p>
