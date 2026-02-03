@@ -2193,4 +2193,3 @@ function mostrarNovaSenha() {
     document.getElementById('recuperacaoForm').classList.add('hidden');
     document.getElementById('novaSenhaForm').classList.remove('hidden');
 }
-
