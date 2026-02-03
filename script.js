@@ -5,18 +5,21 @@ let semanaAtual = -1;
 let planejamentos = {};
 let horarioProfessor = {};
 
-// Configurações da Escola
-let configEscola = {
+// Configurações Múltiplas Escolas
+let escolas = [];
+let escolaAtual = null;
+let configEscolaAtual = {
     nome: "",
     endereco: "",
     cidade: "",
     telefone: "",
     email: "",
-    turno: "Matutino"
+    turno: "Matutino",
+    logo: ""
 };
 
-// Configurações de Horário
-let configHorario = {
+// Configurações de Horário por Escola
+let configHorarioAtual = {
     aulasPorPeriodo: 7,
     duracaoAula: 45,
     inicioAulas: "07:00",
@@ -24,7 +27,7 @@ let configHorario = {
     duracaoIntervalo: 20
 };
 
-// Disciplinas e Turmas do Professor
+// Disciplinas e Turmas do Professor por Escola
 let disciplinasProfessor = [];
 let turmasProfessor = [];
 
@@ -319,33 +322,64 @@ function iniciarAplicacao() {
 function carregarDadosUsuario() {
     if (!usuarioLogado) return;
     
-    // Carregar configurações
-    const escolaSalva = localStorage.getItem('configEscola_' + usuarioLogado.usuario);
-    if (escolaSalva) configEscola = JSON.parse(escolaSalva);
+    // Carregar dados pessoais
+    const perfilSalvo = localStorage.getItem('perfil_' + usuarioLogado.usuario);
+    if (perfilSalvo) {
+        Object.assign(usuarioLogado, JSON.parse(perfilSalvo));
+    }
     
-    const horarioSalvo = localStorage.getItem('configHorario_' + usuarioLogado.usuario);
-    if (horarioSalvo) configHorario = JSON.parse(horarioSalvo);
-    
-    const disciplinasSalvas = localStorage.getItem('disciplinas_' + usuarioLogado.usuario);
-    if (disciplinasSalvas) disciplinasProfessor = JSON.parse(disciplinasSalvas);
-    
-    const turmasSalvas = localStorage.getItem('turmas_' + usuarioLogado.usuario);
-    if (turmasSalvas) turmasProfessor = JSON.parse(turmasSalvas);
-    
-    const horarioProfessorSalvo = localStorage.getItem('horarioProfessor_' + usuarioLogado.usuario);
-    if (horarioProfessorSalvo) horarioProfessor = JSON.parse(horarioProfessorSalvo);
-    
-    const planejamentosSalvos = localStorage.getItem('planejamentos_' + usuarioLogado.usuario);
-    if (planejamentosSalvos) planejamentos = JSON.parse(planejamentosSalvos);
-    
-    const dataInicio = localStorage.getItem('dataInicioLetivo_' + usuarioLogado.usuario);
-    if (dataInicio) document.getElementById('inicioLetivo').value = dataInicio;
+    // Carregar escolas do usuário
+    const escolasSalvas = localStorage.getItem('escolas_' + usuarioLogado.usuario);
+    if (escolasSalvas) {
+        escolas = JSON.parse(escolasSalvas);
+        if (escolas.length > 0) {
+            escolaAtual = escolas[0];
+            carregarDadosEscola(escolaAtual.id);
+        }
+    }
     
     // Atualizar interface
+    atualizarInterface();
     atualizarStatusHorario();
-    atualizarListaDisciplinas();
+}
+
+function carregarDadosEscola(escolaId) {
+    const escola = escolas.find(e => e.id === escolaId);
+    if (!escola) return;
     
-    // Gerar horários
+    escolaAtual = escola;
+    
+    // Carregar configurações da escola
+    const configSalva = localStorage.getItem(`configEscola_${usuarioLogado.usuario}_${escolaId}`);
+    if (configSalva) configEscolaAtual = JSON.parse(configSalva);
+    
+    // Carregar configurações de horário
+    const horarioSalvo = localStorage.getItem(`configHorario_${usuarioLogado.usuario}_${escolaId}`);
+    if (horarioSalvo) configHorarioAtual = JSON.parse(horarioSalvo);
+    
+    // Carregar disciplinas e turmas
+    const disciplinasSalvas = localStorage.getItem(`disciplinas_${usuarioLogado.usuario}_${escolaId}`);
+    if (disciplinasSalvas) disciplinasProfessor = JSON.parse(disciplinasSalvas);
+    
+    const turmasSalvas = localStorage.getItem(`turmas_${usuarioLogado.usuario}_${escolaId}`);
+    if (turmasSalvas) turmasProfessor = JSON.parse(turmasSalvas);
+    
+    // Carregar horário do professor
+    const horarioProfessorSalvo = localStorage.getItem(`horarioProfessor_${usuarioLogado.usuario}_${escolaId}`);
+    if (horarioProfessorSalvo) horarioProfessor = JSON.parse(horarioProfessorSalvo);
+    
+    // Carregar planejamentos
+    const planejamentosSalvos = localStorage.getItem(`planejamentos_${usuarioLogado.usuario}_${escolaId}`);
+    if (planejamentosSalvos) planejamentos = JSON.parse(planejamentosSalvos);
+    
+    // Atualizar nome da escola na interface
+    const escolaNomeElement = document.getElementById('escolaAtualNome');
+    if (escolaNomeElement) {
+        escolaNomeElement.textContent = escolaAtual.nome;
+    }
+    
+    // Atualizar interface
+    atualizarListaDisciplinas();
     gerarHorarios();
 }
 
@@ -357,6 +391,24 @@ function atualizarInterface() {
         if (usuarioLogado.tipo === "superuser") {
             document.getElementById('btnAdmin').classList.remove('hidden');
         }
+        
+        // Atualizar banner da escola atual
+        atualizarBannerEscola();
+    }
+}
+
+function atualizarBannerEscola() {
+    const banner = document.getElementById('bannerEscolaAtual');
+    const nomeEscola = document.getElementById('escolaAtualNome');
+    
+    if (banner && nomeEscola) {
+        if (escolaAtual) {
+            banner.classList.remove('hidden');
+            nomeEscola.textContent = escolaAtual.nome;
+        } else {
+            banner.classList.add('hidden');
+            nomeEscola.textContent = 'Nenhuma escola selecionada';
+        }
     }
 }
 
@@ -366,13 +418,96 @@ function atualizarListaDisciplinas() {
     document.getElementById('disciplinasLista').textContent = texto;
 }
 
-// ========== CONFIGURAÇÃO DA ESCOLA ==========
+// ========== GESTÃO DE ESCOLAS ==========
 function abrirConfiguracaoEscola() {
+    if (escolas.length === 0) {
+        abrirCadastroEscola();
+        return;
+    }
+    
     const modalHTML = `
         <div class="modal-overlay">
-            <div class="modal-content">
+            <div class="modal-content" style="max-width: 800px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="color: #0047B6; margin: 0;">🏫 Configuração da Escola</h3>
+                    <h3 style="color: #0047B6; margin: 0;">🏫 Minhas Escolas</h3>
+                    <button onclick="fecharModal()" class="btn btn-secondary">Fechar</button>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <p>Selecione uma escola para configurar ou adicione uma nova:</p>
+                    <div id="escolasContainer"></div>
+                </div>
+                
+                ${escolaAtual ? `
+                <div class="config-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="color: #2A6ED4; margin: 0;">Configurando: ${escolaAtual.nome}</h4>
+                        <button onclick="abrirConfiguracaoEscolaDetalhes()" class="btn btn-primary">
+                            ⚙️ Configurar Esta Escola
+                        </button>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 25px;">
+                    <button onclick="abrirCadastroEscola()" class="btn btn-success">
+                        ➕ Adicionar Nova Escola
+                    </button>
+                    <button onclick="fecharModal()" class="btn btn-secondary">Fechar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    atualizarSeletorEscolas();
+}
+
+function atualizarSeletorEscolas() {
+    const container = document.getElementById('escolasContainer');
+    if (!container) return;
+    
+    if (escolas.length === 0) {
+        container.innerHTML = '<p style="color: #666; text-align: center;">Nenhuma escola cadastrada</p>';
+        return;
+    }
+    
+    let html = '<div class="escolas-grid">';
+    escolas.forEach((escola, index) => {
+        html += `
+            <div class="escola-card ${escolaAtual && escola.id === escolaAtual.id ? 'active' : ''}" 
+                 onclick="selecionarEscola('${escola.id}')">
+                ${index > 0 ? `<button class="btn-escola-remover" onclick="removerEscola(event, '${escola.id}')">×</button>` : ''}
+                <div class="escola-logo-container">
+                    ${escola.logo ? 
+                        `<img src="${escola.logo}" class="escola-logo" alt="${escola.nome}">` : 
+                        '<div style="font-size: 24px;">🏫</div>'}
+                </div>
+                <h4>${escola.nome}</h4>
+                <p>${escola.turno || 'Turno não definido'}</p>
+                <p style="font-size: 11px;">${escola.cidade || ''}</p>
+            </div>
+        `;
+    });
+    
+    html += `
+        <div class="escola-card" style="border-style: dashed; text-align: center;" onclick="abrirCadastroEscola()">
+            <div style="font-size: 36px; color: #0047B6; margin: 10px 0;">+</div>
+            <h4 style="color: #0047B6;">Nova Escola</h4>
+            <p>Adicionar outra escola</p>
+        </div>
+    `;
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function abrirCadastroEscola() {
+    const modalHTML = `
+        <div class="modal-overlay">
+            <div class="modal-content" style="max-width: 700px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="color: #0047B6; margin: 0;">🏫 Cadastrar Nova Escola</h3>
                     <button onclick="fecharModal()" class="btn btn-secondary">Fechar</button>
                 </div>
                 
@@ -381,38 +516,213 @@ function abrirConfiguracaoEscola() {
                     
                     <div class="input-group">
                         <label>Nome da Escola:</label>
-                        <input type="text" id="modalNomeEscola" value="${configEscola.nome}" placeholder="Nome da instituição">
+                        <input type="text" id="novaEscolaNome" placeholder="Nome da instituição">
                     </div>
                     
                     <div class="input-group">
                         <label>Endereço:</label>
-                        <input type="text" id="modalEnderecoEscola" value="${configEscola.endereco}" placeholder="Rua, número, bairro">
+                        <input type="text" id="novaEscolaEndereco" placeholder="Rua, número, bairro">
                     </div>
                     
                     <div class="grid-2">
                         <div class="input-group">
                             <label>Cidade:</label>
-                            <input type="text" id="modalCidadeEscola" value="${configEscola.cidade}" placeholder="Cidade">
+                            <input type="text" id="novaEscolaCidade" placeholder="Cidade">
                         </div>
                         <div class="input-group">
                             <label>Telefone:</label>
-                            <input type="text" id="modalTelefoneEscola" value="${configEscola.telefone}" placeholder="(11) 99999-9999">
+                            <input type="text" id="novaEscolaTelefone" placeholder="(11) 99999-9999">
+                        </div>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Email:</label>
+                            <input type="email" id="novaEscolaEmail" placeholder="escola@email.com">
+                        </div>
+                        <div class="input-group">
+                            <label>Turno:</label>
+                            <select id="novaEscolaTurno">
+                                <option value="Matutino">Matutino</option>
+                                <option value="Vespertino">Vespertino</option>
+                                <option value="Noturno">Noturno</option>
+                                <option value="Integral">Integral</option>
+                            </select>
                         </div>
                     </div>
                     
                     <div class="input-group">
-                        <label>Email:</label>
-                        <input type="email" id="modalEmailEscola" value="${configEscola.email}" placeholder="escola@email.com">
+                        <label>Logo da Escola (URL da imagem):</label>
+                        <input type="text" id="novaEscolaLogo" placeholder="https://exemplo.com/logo.png">
+                        <small style="color: #666;">Cole a URL de uma imagem ou deixe em branco</small>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 25px;">
+                    <button onclick="salvarNovaEscola()" class="btn btn-success">Salvar Escola</button>
+                    <button onclick="fecharModal()" class="btn btn-secondary">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function salvarNovaEscola() {
+    const nome = document.getElementById('novaEscolaNome').value.trim();
+    const endereco = document.getElementById('novaEscolaEndereco').value.trim();
+    const cidade = document.getElementById('novaEscolaCidade').value.trim();
+    const telefone = document.getElementById('novaEscolaTelefone').value.trim();
+    const email = document.getElementById('novaEscolaEmail').value.trim();
+    const turno = document.getElementById('novaEscolaTurno').value;
+    const logo = document.getElementById('novaEscolaLogo').value.trim();
+    
+    if (!nome) {
+        alert('Digite o nome da escola');
+        return;
+    }
+    
+    // Criar nova escola
+    const novaEscola = {
+        id: 'escola_' + Date.now(),
+        nome: nome,
+        endereco: endereco,
+        cidade: cidade,
+        telefone: telefone,
+        email: email,
+        turno: turno,
+        logo: logo,
+        dataCadastro: new Date().toISOString()
+    };
+    
+    escolas.push(novaEscola);
+    localStorage.setItem('escolas_' + usuarioLogado.usuario, JSON.stringify(escolas));
+    
+    // Selecionar a nova escola
+    escolaAtual = novaEscola;
+    carregarDadosEscola(novaEscola.id);
+    
+    alert('Escola cadastrada com sucesso!');
+    fecharModal();
+    atualizarBannerEscola();
+}
+
+function selecionarEscola(escolaId) {
+    carregarDadosEscola(escolaId);
+    fecharModal();
+    atualizarBannerEscola();
+}
+
+function removerEscola(event, escolaId) {
+    event.stopPropagation();
+    
+    if (escolas.length <= 1) {
+        alert('Você deve ter pelo menos uma escola cadastrada');
+        return;
+    }
+    
+    if (confirm('Tem certeza que deseja remover esta escola?\n\nTodos os dados associados serão perdidos.')) {
+        // Remover escola
+        escolas = escolas.filter(e => e.id !== escolaId);
+        localStorage.setItem('escolas_' + usuarioLogado.usuario, JSON.stringify(escolas));
+        
+        // Remover dados associados
+        const prefix = `${usuarioLogado.usuario}_${escolaId}`;
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.includes(prefix)) {
+                localStorage.removeItem(key);
+            }
+        }
+        
+        // Selecionar primeira escola
+        if (escolas.length > 0) {
+            escolaAtual = escolas[0];
+            carregarDadosEscola(escolaAtual.id);
+        } else {
+            escolaAtual = null;
+            configEscolaAtual = {
+                nome: "",
+                endereco: "",
+                cidade: "",
+                telefone: "",
+                email: "",
+                turno: "Matutino",
+                logo: ""
+            };
+        }
+        
+        atualizarSeletorEscolas();
+        atualizarBannerEscola();
+        alert('Escola removida com sucesso!');
+    }
+}
+
+function abrirConfiguracaoEscolaDetalhes() {
+    if (!escolaAtual) {
+        alert('Selecione uma escola primeiro');
+        return;
+    }
+    
+    const modalHTML = `
+        <div class="modal-overlay">
+            <div class="modal-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="color: #0047B6; margin: 0;">⚙️ Configuração da Escola: ${escolaAtual.nome}</h3>
+                    <button onclick="fecharModal()" class="btn btn-secondary">Fechar</button>
+                </div>
+                
+                <div class="config-section">
+                    <h4 style="color: #2A6ED4; margin-bottom: 15px;">📋 Dados da Escola</h4>
+                    
+                    <div class="input-group">
+                        <label>Nome da Escola:</label>
+                        <input type="text" id="modalNomeEscola" value="${configEscolaAtual.nome || escolaAtual.nome}" placeholder="Nome da instituição">
                     </div>
                     
                     <div class="input-group">
-                        <label>Turno:</label>
-                        <select id="modalTurnoEscola">
-                            <option value="Matutino" ${configEscola.turno === 'Matutino' ? 'selected' : ''}>Matutino</option>
-                            <option value="Vespertino" ${configEscola.turno === 'Vespertino' ? 'selected' : ''}>Vespertino</option>
-                            <option value="Noturno" ${configEscola.turno === 'Noturno' ? 'selected' : ''}>Noturno</option>
-                            <option value="Integral" ${configEscola.turno === 'Integral' ? 'selected' : ''}>Integral</option>
-                        </select>
+                        <label>Endereço:</label>
+                        <input type="text" id="modalEnderecoEscola" value="${configEscolaAtual.endereco || escolaAtual.endereco}" placeholder="Rua, número, bairro">
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Cidade:</label>
+                            <input type="text" id="modalCidadeEscola" value="${configEscolaAtual.cidade || escolaAtual.cidade}" placeholder="Cidade">
+                        </div>
+                        <div class="input-group">
+                            <label>Telefone:</label>
+                            <input type="text" id="modalTelefoneEscola" value="${configEscolaAtual.telefone || escolaAtual.telefone}" placeholder="(11) 99999-9999">
+                        </div>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Email:</label>
+                            <input type="email" id="modalEmailEscola" value="${configEscolaAtual.email || escolaAtual.email}" placeholder="escola@email.com">
+                        </div>
+                        <div class="input-group">
+                            <label>Turno:</label>
+                            <select id="modalTurnoEscola">
+                                <option value="Matutino" ${(configEscolaAtual.turno || escolaAtual.turno) === 'Matutino' ? 'selected' : ''}>Matutino</option>
+                                <option value="Vespertino" ${(configEscolaAtual.turno || escolaAtual.turno) === 'Vespertino' ? 'selected' : ''}>Vespertino</option>
+                                <option value="Noturno" ${(configEscolaAtual.turno || escolaAtual.turno) === 'Noturno' ? 'selected' : ''}>Noturno</option>
+                                <option value="Integral" ${(configEscolaAtual.turno || escolaAtual.turno) === 'Integral' ? 'selected' : ''}>Integral</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Logo da Escola (URL):</label>
+                        <input type="text" id="modalLogoEscola" value="${configEscolaAtual.logo || escolaAtual.logo || ''}" placeholder="https://exemplo.com/logo.png">
+                        <small style="color: #666;">Cole a URL de uma imagem</small>
+                        ${configEscolaAtual.logo || escolaAtual.logo ? `
+                        <div style="margin-top: 10px;">
+                            <p>Logo atual:</p>
+                            <img src="${configEscolaAtual.logo || escolaAtual.logo}" style="max-width: 100px; max-height: 60px; border: 1px solid #ddd; padding: 5px;">
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
                 
@@ -422,28 +732,28 @@ function abrirConfiguracaoEscola() {
                     <div class="grid-2">
                         <div class="input-group">
                             <label>Aulas por período:</label>
-                            <input type="number" id="modalAulasPeriodo" value="${configHorario.aulasPorPeriodo}" min="4" max="10">
+                            <input type="number" id="modalAulasPeriodo" value="${configHorarioAtual.aulasPorPeriodo}" min="4" max="10">
                         </div>
                         <div class="input-group">
                             <label>Duração da aula (min):</label>
-                            <input type="number" id="modalDuracaoAula" value="${configHorario.duracaoAula}" min="40" max="60">
+                            <input type="number" id="modalDuracaoAula" value="${configHorarioAtual.duracaoAula}" min="40" max="60">
                         </div>
                     </div>
                     
                     <div class="grid-2">
                         <div class="input-group">
                             <label>Início das aulas:</label>
-                            <input type="time" id="modalInicioAulas" value="${configHorario.inicioAulas}">
+                            <input type="time" id="modalInicioAulas" value="${configHorarioAtual.inicioAulas}">
                         </div>
                         <div class="input-group">
                             <label>Horário do recreio:</label>
-                            <input type="time" id="modalHorarioRecreio" value="${configHorario.intervalo}">
+                            <input type="time" id="modalHorarioRecreio" value="${configHorarioAtual.intervalo}">
                         </div>
                     </div>
                     
                     <div class="input-group">
                         <label>Duração do recreio (min):</label>
-                        <input type="number" id="modalDuracaoRecreio" value="${configHorario.duracaoIntervalo}" min="10" max="30">
+                        <input type="number" id="modalDuracaoRecreio" value="${configHorarioAtual.duracaoIntervalo}" min="10" max="30">
                     </div>
                     
                     <div style="margin-top: 15px; padding: 10px; background: #f0f8ff; border-radius: 6px;">
@@ -455,7 +765,7 @@ function abrirConfiguracaoEscola() {
                 </div>
                 
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 25px;">
-                    <button onclick="salvarConfiguracaoEscola()" class="btn btn-success">Salvar Configurações</button>
+                    <button onclick="salvarConfiguracaoEscolaAtual()" class="btn btn-success">Salvar Configurações</button>
                     <button onclick="fecharModal()" class="btn btn-secondary">Cancelar</button>
                 </div>
             </div>
@@ -486,7 +796,7 @@ function atualizarPreview() {
 }
 
 function gerarPreviewHorarios() {
-    return gerarHorariosConfig(configHorario);
+    return gerarHorariosConfig(configHorarioAtual);
 }
 
 function gerarHorariosConfig(config) {
@@ -525,38 +835,50 @@ function gerarHorariosConfig(config) {
     return horarios;
 }
 
-function salvarConfiguracaoEscola() {
+function salvarConfiguracaoEscolaAtual() {
+    if (!escolaAtual) return;
+    
     // Salvar dados da escola
-    configEscola.nome = document.getElementById('modalNomeEscola').value.trim();
-    configEscola.endereco = document.getElementById('modalEnderecoEscola').value.trim();
-    configEscola.cidade = document.getElementById('modalCidadeEscola').value.trim();
-    configEscola.telefone = document.getElementById('modalTelefoneEscola').value.trim();
-    configEscola.email = document.getElementById('modalEmailEscola').value.trim();
-    configEscola.turno = document.getElementById('modalTurnoEscola').value;
+    configEscolaAtual.nome = document.getElementById('modalNomeEscola').value.trim();
+    configEscolaAtual.endereco = document.getElementById('modalEnderecoEscola').value.trim();
+    configEscolaAtual.cidade = document.getElementById('modalCidadeEscola').value.trim();
+    configEscolaAtual.telefone = document.getElementById('modalTelefoneEscola').value.trim();
+    configEscolaAtual.email = document.getElementById('modalEmailEscola').value.trim();
+    configEscolaAtual.turno = document.getElementById('modalTurnoEscola').value;
+    configEscolaAtual.logo = document.getElementById('modalLogoEscola').value.trim();
+    
+    // Atualizar escola na lista
+    const escolaIndex = escolas.findIndex(e => e.id === escolaAtual.id);
+    if (escolaIndex !== -1) {
+        escolas[escolaIndex] = { ...escolas[escolaIndex], ...configEscolaAtual };
+        localStorage.setItem('escolas_' + usuarioLogado.usuario, JSON.stringify(escolas));
+        escolaAtual = escolas[escolaIndex];
+    }
     
     // Salvar configurações de horário
-    configHorario.aulasPorPeriodo = parseInt(document.getElementById('modalAulasPeriodo').value) || 7;
-    configHorario.duracaoAula = parseInt(document.getElementById('modalDuracaoAula').value) || 45;
-    configHorario.inicioAulas = document.getElementById('modalInicioAulas').value || "07:00";
-    configHorario.intervalo = document.getElementById('modalHorarioRecreio').value || "10:00";
-    configHorario.duracaoIntervalo = parseInt(document.getElementById('modalDuracaoRecreio').value) || 20;
+    configHorarioAtual.aulasPorPeriodo = parseInt(document.getElementById('modalAulasPeriodo').value) || 7;
+    configHorarioAtual.duracaoAula = parseInt(document.getElementById('modalDuracaoAula').value) || 45;
+    configHorarioAtual.inicioAulas = document.getElementById('modalInicioAulas').value || "07:00";
+    configHorarioAtual.intervalo = document.getElementById('modalHorarioRecreio').value || "10:00";
+    configHorarioAtual.duracaoIntervalo = parseInt(document.getElementById('modalDuracaoRecreio').value) || 20;
     
-    // Salvar no localStorage
-    localStorage.setItem('configEscola_' + usuarioLogado.usuario, JSON.stringify(configEscola));
-    localStorage.setItem('configHorario_' + usuarioLogado.usuario, JSON.stringify(configHorario));
+    // Salvar no localStorage com chave específica da escola
+    localStorage.setItem(`configEscola_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(configEscolaAtual));
+    localStorage.setItem(`configHorario_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(configHorarioAtual));
     
     // Atualizar horários
     gerarHorarios();
     
     alert('Configurações salvas com sucesso!');
     fecharModal();
+    atualizarBannerEscola();
 }
 
 // ========== CONFIGURAÇÃO DE HORÁRIO ==========
 function abrirConfiguracaoHorario() {
-    // Verificar se escola foi configurada
-    if (!configEscola.nome) {
-        alert('Configure primeiro os dados da sua escola!');
+    // Verificar se escola foi selecionada
+    if (!escolaAtual) {
+        alert('Selecione uma escola primeiro!');
         abrirConfiguracaoEscola();
         return;
     }
@@ -565,7 +887,7 @@ function abrirConfiguracaoHorario() {
         <div class="modal-overlay">
             <div class="modal-content" style="max-width: 1000px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="color: #0047B6; margin: 0;">🕐 Configurar Meu Horário</h3>
+                    <h3 style="color: #0047B6; margin: 0;">🕐 Configurar Meu Horário - ${escolaAtual.nome}</h3>
                     <button onclick="fecharModal()" class="btn btn-secondary">Fechar</button>
                 </div>
                 
@@ -608,9 +930,9 @@ function abrirConfiguracaoHorario() {
                     <h4 style="color: #2A6ED4; margin-bottom: 15px;">📅 Grade Horária</h4>
                     
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <p><strong>Escola:</strong> ${configEscola.nome}</p>
-                        <p><strong>Turno:</strong> ${configEscola.turno}</p>
-                        <p><strong>Horários:</strong> ${configHorario.aulasPorPeriodo} aulas por dia</p>
+                        <p><strong>Escola:</strong> ${configEscolaAtual.nome || escolaAtual.nome}</p>
+                        <p><strong>Turno:</strong> ${configEscolaAtual.turno || escolaAtual.turno}</p>
+                        <p><strong>Horários:</strong> ${configHorarioAtual.aulasPorPeriodo} aulas por dia</p>
                     </div>
                     
                     <div id="gradeConfigHorario" class="grade-container">
@@ -677,7 +999,7 @@ function renderGradeConfigHorario() {
     });
     
     // Linhas das aulas
-    for (let i = 0; i < configHorario.aulasPorPeriodo; i++) {
+    for (let i = 0; i < configHorarioAtual.aulasPorPeriodo; i++) {
         html += `<div class="grade-header">${horariosGerados[i] || ''}</div>`;
         
         for (let j = 0; j < 5; j++) {
@@ -740,7 +1062,7 @@ function adicionarDisciplina() {
     };
     
     disciplinasProfessor.push(novaDisciplina);
-    localStorage.setItem('disciplinas_' + usuarioLogado.usuario, JSON.stringify(disciplinasProfessor));
+    localStorage.setItem(`disciplinas_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(disciplinasProfessor));
     
     // Atualizar interface
     document.getElementById('listaDisciplinas').innerHTML = renderDisciplinas();
@@ -758,7 +1080,7 @@ function adicionarDisciplina() {
 function removerDisciplina(index) {
     if (confirm('Tem certeza que deseja remover esta disciplina?')) {
         disciplinasProfessor.splice(index, 1);
-        localStorage.setItem('disciplinas_' + usuarioLogado.usuario, JSON.stringify(disciplinasProfessor));
+        localStorage.setItem(`disciplinas_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(disciplinasProfessor));
         
         document.getElementById('listaDisciplinas').innerHTML = renderDisciplinas();
         
@@ -788,7 +1110,7 @@ function adicionarTurma() {
     // Adicionar
     turmasProfessor.push(nome);
     turmasProfessor.sort();
-    localStorage.setItem('turmas_' + usuarioLogado.usuario, JSON.stringify(turmasProfessor));
+    localStorage.setItem(`turmas_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(turmasProfessor));
     
     // Atualizar interface
     document.getElementById('listaTurmas').innerHTML = renderTurmas();
@@ -804,7 +1126,7 @@ function adicionarTurma() {
 function removerTurma(index) {
     if (confirm('Tem certeza que deseja remover esta turma?')) {
         turmasProfessor.splice(index, 1);
-        localStorage.setItem('turmas_' + usuarioLogado.usuario, JSON.stringify(turmasProfessor));
+        localStorage.setItem(`turmas_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(turmasProfessor));
         
         document.getElementById('listaTurmas').innerHTML = renderTurmas();
         
@@ -831,6 +1153,8 @@ function atualizarTurmaHorario(dia, aulaIndex, turma) {
 }
 
 function salvarConfiguracaoHorario() {
+    if (!escolaAtual) return;
+    
     if (disciplinasProfessor.length === 0) {
         alert('Cadastre pelo menos uma disciplina!');
         return;
@@ -841,7 +1165,7 @@ function salvarConfiguracaoHorario() {
         return;
     }
     
-    localStorage.setItem('horarioProfessor_' + usuarioLogado.usuario, JSON.stringify(horarioProfessor));
+    localStorage.setItem(`horarioProfessor_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(horarioProfessor));
     
     alert('Horário salvo com sucesso!');
     atualizarStatusHorario();
@@ -850,7 +1174,7 @@ function salvarConfiguracaoHorario() {
 
 // ========== GERAÇÃO DE HORÁRIOS ==========
 function gerarHorarios() {
-    horariosGerados = gerarHorariosConfig(configHorario);
+    horariosGerados = gerarHorariosConfig(configHorarioAtual);
 }
 
 function gerarSemanas() {
@@ -858,6 +1182,12 @@ function gerarSemanas() {
     
     if (!dataInicio) {
         alert('Selecione a data de início do ano letivo');
+        return;
+    }
+    
+    if (!escolaAtual) {
+        alert('Selecione uma escola primeiro!');
+        abrirConfiguracaoEscola();
         return;
     }
     
@@ -878,7 +1208,7 @@ function gerarSemanas() {
     }
     
     // Salvar data de início
-    localStorage.setItem('dataInicioLetivo_' + usuarioLogado.usuario, dataInicio);
+    localStorage.setItem(`dataInicioLetivo_${usuarioLogado.usuario}_${escolaAtual.id}`, dataInicio);
     
     // Gerar semanas
     semanas = [];
@@ -926,14 +1256,14 @@ function inicializarPlanejamentos() {
         }
     });
     
-    localStorage.setItem('planejamentos_' + usuarioLogado.usuario, JSON.stringify(planejamentos));
+    localStorage.setItem(`planejamentos_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(planejamentos));
 }
 
 function criarGradeVazia() {
     const grade = [];
     for (let dia = 0; dia < 5; dia++) {
         grade[dia] = [];
-        for (let aula = 0; aula < configHorario.aulasPorPeriodo; aula++) {
+        for (let aula = 0; aula < configHorarioAtual.aulasPorPeriodo; aula++) {
             const aulaData = horarioProfessor[DIAS_SEMANA[dia]] && horarioProfessor[DIAS_SEMANA[dia]][aula];
             grade[dia][aula] = {
                 disciplina: aulaData ? aulaData.disciplina : null,
@@ -1000,7 +1330,7 @@ function contarAulasNaSemana(index) {
     const aulas = planejamentos[chave].aulas;
     
     for (let dia = 0; dia < 5; dia++) {
-        for (let aula = 0; aula < configHorario.aulasPorPeriodo; aula++) {
+        for (let aula = 0; aula < configHorarioAtual.aulasPorPeriodo; aula++) {
             if (aulas[dia][aula].disciplina) {
                 total++;
             }
@@ -1018,7 +1348,7 @@ function contarAulasComConteudo(index) {
     const aulas = planejamentos[chave].aulas;
     
     for (let dia = 0; dia < 5; dia++) {
-        for (let aula = 0; aula < configHorario.aulasPorPeriodo; aula++) {
+        for (let aula = 0; aula < configHorarioAtual.aulasPorPeriodo; aula++) {
             if (aulas[dia][aula].conteudo && aulas[dia][aula].conteudo.trim() !== '') {
                 total++;
             }
@@ -1126,7 +1456,7 @@ function renderGradeSemana() {
     
     let html = `
         <div style="margin-bottom: 20px;">
-            <h3>📅 Grade de Aulas</h3>
+            <h3>📅 Grade de Aulas - ${configEscolaAtual.nome || escolaAtual.nome}</h3>
         </div>
         
         <div class="grade-container">
@@ -1142,8 +1472,8 @@ function renderGradeSemana() {
     });
     
     // Linhas das aulas
-    for (let aula = 0; aula < configHorario.aulasPorPeriodo; aula++) {
-        html += `<div class="grade-header">${horariosGerados[aula]}<br><small>${configHorario.duracaoAula} min</small></div>`;
+    for (let aula = 0; aula < configHorarioAtual.aulasPorPeriodo; aula++) {
+        html += `<div class="grade-header">${horariosGerados[aula]}<br><small>${configHorarioAtual.duracaoAula} min</small></div>`;
         
         for (let dia = 0; dia < 5; dia++) {
             const aulaData = planejamento.aulas[dia][aula];
@@ -1211,7 +1541,7 @@ function salvarConteudoAula(dia, aula, conteudo) {
     }
     
     planejamentos[chave].aulas[dia][aula].conteudo = conteudo;
-    localStorage.setItem('planejamentos_' + usuarioLogado.usuario, JSON.stringify(planejamentos));
+    localStorage.setItem(`planejamentos_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(planejamentos));
 }
 
 function salvarAnotacoesSemana(anotacoes) {
@@ -1224,7 +1554,7 @@ function salvarAnotacoesSemana(anotacoes) {
     }
     
     planejamentos[chave].anotacoes = anotacoes;
-    localStorage.setItem('planejamentos_' + usuarioLogado.usuario, JSON.stringify(planejamentos));
+    localStorage.setItem(`planejamentos_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(planejamentos));
 }
 
 function apagarConteudoAula(dia, aula) {
@@ -1232,7 +1562,7 @@ function apagarConteudoAula(dia, aula) {
         const chave = `semana_${semanaAtual}`;
         if (planejamentos[chave]) {
             planejamentos[chave].aulas[dia][aula].conteudo = '';
-            localStorage.setItem('planejamentos_' + usuarioLogado.usuario, JSON.stringify(planejamentos));
+            localStorage.setItem(`planejamentos_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(planejamentos));
             renderGradeSemana();
             alert('Conteúdo apagado!');
         }
@@ -1244,7 +1574,7 @@ function apagarAnotacoesSemana() {
         const chave = `semana_${semanaAtual}`;
         if (planejamentos[chave]) {
             planejamentos[chave].anotacoes = '';
-            localStorage.setItem('planejamentos_' + usuarioLogado.usuario, JSON.stringify(planejamentos));
+            localStorage.setItem(`planejamentos_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(planejamentos));
             renderGradeSemana();
             alert('Anotações apagadas!');
         }
@@ -1257,7 +1587,7 @@ function apagarTodaSemana() {
         if (planejamentos[chave]) {
             // Limpar conteúdos
             for (let dia = 0; dia < 5; dia++) {
-                for (let aula = 0; aula < configHorario.aulasPorPeriodo; aula++) {
+                for (let aula = 0; aula < configHorarioAtual.aulasPorPeriodo; aula++) {
                     planejamentos[chave].aulas[dia][aula].conteudo = '';
                 }
             }
@@ -1265,7 +1595,7 @@ function apagarTodaSemana() {
             // Limpar anotações
             planejamentos[chave].anotacoes = '';
             
-            localStorage.setItem('planejamentos_' + usuarioLogado.usuario, JSON.stringify(planejamentos));
+            localStorage.setItem(`planejamentos_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(planejamentos));
             renderGradeSemana();
             alert('Semana apagada com sucesso!');
         }
@@ -1295,7 +1625,7 @@ function atualizarStatusHorario() {
     if (!element) return;
     
     let aulasConfiguradas = 0;
-    let totalAulas = configHorario.aulasPorPeriodo * 5;
+    let totalAulas = configHorarioAtual.aulasPorPeriodo * 5;
     
     Object.values(horarioProfessor).forEach(dia => {
         if (dia && Array.isArray(dia)) {
@@ -1322,9 +1652,19 @@ function exportarSemanaDOC() {
         return;
     }
     
+    if (!escolaAtual) {
+        alert('Nenhuma escola selecionada!');
+        return;
+    }
+    
     const semana = semanas[semanaAtual];
     const chave = `semana_${semanaAtual}`;
     const planejamento = planejamentos[chave] || { aulas: criarGradeVazia(), anotacoes: '' };
+    
+    let logoHTML = '';
+    if (configEscolaAtual.logo) {
+        logoHTML = `<div class="logo-container"><img src="${configEscolaAtual.logo}" class="logo-documento" alt="${configEscolaAtual.nome}"></div>`;
+    }
     
     let html = `
         <!DOCTYPE html>
@@ -1341,18 +1681,25 @@ function exportarSemanaDOC() {
                 th { background-color: #0047B6; color: white; }
                 .header { text-align: center; margin-bottom: 30px; }
                 .info { margin: 10px 0; }
+                .logo-container { text-align: center; margin: 10px 0; }
+                .logo-documento { max-width: 150px; height: auto; }
                 .anotacoes { background: #fff8e1; padding: 15px; border: 2px solid #F2B817; margin-top: 30px; }
                 .rodape { text-align: center; margin-top: 30px; font-size: 9pt; color: #666; }
             </style>
         </head>
         <body>
             <div class="header">
+                ${logoHTML}
                 <h1>📚 PLANEJAMENTO SEMANAL DE AULAS</h1>
+                <h3>${configEscolaAtual.nome || escolaAtual.nome}</h3>
                 <h3>Semana ${semana.id} • ${formatarData(semana.inicio)} a ${formatarData(semana.fim)}</h3>
                 <div class="info">
                     <p><strong>Professor:</strong> ${usuarioLogado.nome}</p>
-                    <p><strong>Escola:</strong> ${configEscola.nome}</p>
-                    <p><strong>Turno:</strong> ${configEscola.turno}</p>
+                    <p><strong>Escola:</strong> ${configEscolaAtual.nome || escolaAtual.nome}</p>
+                    <p><strong>Endereço:</strong> ${configEscolaAtual.endereco || escolaAtual.endereco}</p>
+                    <p><strong>Cidade:</strong> ${configEscolaAtual.cidade || escolaAtual.cidade}</p>
+                    <p><strong>Turno:</strong> ${configEscolaAtual.turno || escolaAtual.turno}</p>
+                    <p><strong>Telefone:</strong> ${configEscolaAtual.telefone || escolaAtual.telefone}</p>
                 </div>
             </div>
             
@@ -1372,8 +1719,8 @@ function exportarSemanaDOC() {
     html += `</tr></thead><tbody>`;
     
     // Conteúdo
-    for (let aula = 0; aula < configHorario.aulasPorPeriodo; aula++) {
-        html += `<tr><td><strong>${horariosGerados[aula]}</strong><br><small>${configHorario.duracaoAula} min</small></td>`;
+    for (let aula = 0; aula < configHorarioAtual.aulasPorPeriodo; aula++) {
+        html += `<tr><td><strong>${horariosGerados[aula]}</strong><br><small>${configHorarioAtual.duracaoAula} min</small></td>`;
         
         for (let dia = 0; dia < 5; dia++) {
             const aulaData = planejamento.aulas[dia][aula];
@@ -1421,7 +1768,7 @@ function exportarSemanaDOC() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Planejamento_Semana_${semana.id}_${formatarDataISO(semana.inicio)}.doc`;
+    a.download = `Planejamento_${configEscolaAtual.nome.replace(/[^a-z0-9]/gi, '_')}_Semana_${semana.id}_${formatarDataISO(semana.inicio)}.doc`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1437,6 +1784,124 @@ function exportarParaDOC() {
     }
     
     exportarSemanaDOC();
+}
+
+// ========== EDIÇÃO DE PERFIL ==========
+function abrirEditarPerfil() {
+    const modalHTML = `
+        <div class="modal-overlay">
+            <div class="modal-content" style="max-width: 600px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="color: #0047B6; margin: 0;">👤 Meu Perfil</h3>
+                    <button onclick="fecharModal()" class="btn btn-secondary">Fechar</button>
+                </div>
+                
+                <div class="config-section">
+                    <div class="profile-section">
+                        <div class="avatar-container">
+                            ${usuarioLogado.avatar ? 
+                                `<img src="${usuarioLogado.avatar}" class="avatar-preview" alt="Avatar">` : 
+                                '<div class="avatar-placeholder">👤</div>'}
+                        </div>
+                        <div class="profile-info">
+                            <h4>${usuarioLogado.nome}</h4>
+                            <p>${usuarioLogado.email}</p>
+                            <p><small>Usuário: ${usuarioLogado.usuario}</small></p>
+                            <input type="text" id="perfilAvatar" placeholder="URL da sua foto" value="${usuarioLogado.avatar || ''}" 
+                                   style="width: 100%; padding: 8px; margin-top: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                            <small style="color: #666;">Cole a URL de uma imagem para seu avatar</small>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Nome completo:</label>
+                        <input type="text" id="perfilNome" value="${usuarioLogado.nome}" placeholder="Seu nome completo">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Email:</label>
+                        <input type="email" id="perfilEmail" value="${usuarioLogado.email}" placeholder="seu@email.com">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Telefone:</label>
+                        <input type="text" id="perfilTelefone" value="${usuarioLogado.telefone || ''}" placeholder="(11) 99999-9999">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Alterar senha:</label>
+                        <input type="password" id="perfilNovaSenha" placeholder="Nova senha (deixe em branco para não alterar)">
+                        <span class="password-toggle" onclick="togglePassword('perfilNovaSenha')">👁️</span>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Confirmar senha:</label>
+                        <input type="password" id="perfilConfirmarSenha" placeholder="Confirme a nova senha">
+                        <span class="password-toggle" onclick="togglePassword('perfilConfirmarSenha')">👁️</span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 25px;">
+                    <button onclick="salvarPerfil()" class="btn btn-success">Salvar Alterações</button>
+                    <button onclick="fecharModal()" class="btn btn-secondary">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function salvarPerfil() {
+    const nome = document.getElementById('perfilNome').value.trim();
+    const email = document.getElementById('perfilEmail').value.trim();
+    const telefone = document.getElementById('perfilTelefone').value.trim();
+    const avatar = document.getElementById('perfilAvatar').value.trim();
+    const novaSenha = document.getElementById('perfilNovaSenha').value;
+    const confirmarSenha = document.getElementById('perfilConfirmarSenha').value;
+    
+    if (!nome || !email) {
+        alert('Nome e email são obrigatórios');
+        return;
+    }
+    
+    // Verificar senha
+    if (novaSenha) {
+        if (novaSenha.length < 6) {
+            alert('A senha deve ter pelo menos 6 caracteres');
+            return;
+        }
+        
+        if (novaSenha !== confirmarSenha) {
+            alert('As senhas não coincidem');
+            return;
+        }
+        
+        // Alterar senha
+        localStorage.setItem('senha_' + usuarioLogado.usuario, novaSenha);
+    }
+    
+    // Atualizar dados do usuário
+    usuarioLogado.nome = nome;
+    usuarioLogado.email = email;
+    usuarioLogado.telefone = telefone;
+    usuarioLogado.avatar = avatar;
+    
+    // Salvar perfil
+    localStorage.setItem('perfil_' + usuarioLogado.usuario, JSON.stringify({
+        nome: nome,
+        email: email,
+        telefone: telefone,
+        avatar: avatar
+    }));
+    
+    // Atualizar usuário no localStorage
+    localStorage.setItem('usuario_' + usuarioLogado.usuario, JSON.stringify(usuarioLogado));
+    localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+    
+    alert('Perfil atualizado com sucesso!');
+    atualizarInterface();
+    fecharModal();
 }
 
 // ========== FUNÇÕES DO ADMIN ==========
@@ -1458,7 +1923,9 @@ function abrirPainelAdmin() {
             const usuario = JSON.parse(localStorage.getItem(key));
             emails.push(usuario.email);
             
-            if (localStorage.getItem('horarioProfessor_' + usuario.usuario)) {
+            // Verificar se tem escolas cadastradas
+            const escolasUsuario = localStorage.getItem('escolas_' + usuario.usuario);
+            if (escolasUsuario && JSON.parse(escolasUsuario).length > 0) {
                 professoresAtivos++;
             }
         }
@@ -1570,21 +2037,23 @@ function limparDadosAntigos() {
                 const dataCadastro = new Date(usuario.dataCadastro).getTime();
                 
                 if (dataCadastro < trintaDiasAtras) {
-                    // Verificar se tem dados
-                    const temDados = localStorage.getItem('horarioProfessor_' + usuario.usuario) ||
-                                     localStorage.getItem('planejamentos_' + usuario.usuario);
+                    // Verificar se tem dados recentes
+                    const temDadosRecentes = localStorage.getItem('escolas_' + usuario.usuario);
                     
-                    if (!temDados) {
+                    if (!temDadosRecentes) {
                         // Remover usuário inativo
                         localStorage.removeItem(key);
                         localStorage.removeItem('senha_' + usuario.usuario);
-                        localStorage.removeItem('configEscola_' + usuario.usuario);
-                        localStorage.removeItem('configHorario_' + usuario.usuario);
-                        localStorage.removeItem('disciplinas_' + usuario.usuario);
-                        localStorage.removeItem('turmas_' + usuario.usuario);
-                        localStorage.removeItem('horarioProfessor_' + usuario.usuario);
-                        localStorage.removeItem('planejamentos_' + usuario.usuario);
-                        localStorage.removeItem('dataInicioLetivo_' + usuario.usuario);
+                        localStorage.removeItem('perfil_' + usuario.usuario);
+                        
+                        // Remover dados específicos do usuário
+                        for (let j = 0; j < localStorage.length; j++) {
+                            const userKey = localStorage.key(j);
+                            if (userKey && userKey.includes(usuario.usuario)) {
+                                localStorage.removeItem(userKey);
+                            }
+                        }
+                        
                         removidos++;
                     }
                 }
