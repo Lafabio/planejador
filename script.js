@@ -2165,3 +2165,32 @@ function copiarEmailsProfessores() {
     });
 }
 
+// ========== FUNÇÕES DE NAVEGAÇÃO ENTRE TELAS DE LOGIN ==========
+function mostrarLogin() {
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('cadastroForm').classList.add('hidden');
+    document.getElementById('recuperacaoForm').classList.add('hidden');
+    document.getElementById('novaSenhaForm').classList.add('hidden');
+}
+
+function mostrarCadastro() {
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('cadastroForm').classList.remove('hidden');
+    document.getElementById('recuperacaoForm').classList.add('hidden');
+    document.getElementById('novaSenhaForm').classList.add('hidden');
+}
+
+function mostrarRecuperacao() {
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('cadastroForm').classList.add('hidden');
+    document.getElementById('recuperacaoForm').classList.remove('hidden');
+    document.getElementById('novaSenhaForm').classList.add('hidden');
+}
+
+function mostrarNovaSenha() {
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('cadastroForm').classList.add('hidden');
+    document.getElementById('recuperacaoForm').classList.add('hidden');
+    document.getElementById('novaSenhaForm').classList.remove('hidden');
+}
+
