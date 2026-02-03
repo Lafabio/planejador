@@ -6,454 +6,9 @@
     <title>Planejador de Aulas</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Arial, sans-serif;
-        }
-
-        body {
-            background: #f5f7fa;
-            color: #333;
-        }
-
+        /* Estilos inline para garantir funcionamento inicial */
         .hidden {
             display: none !important;
-        }
-
-        /* Estilos do Login */
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .login-box {
-            background: white;
-            border-radius: 12px;
-            padding: 40px;
-            width: 100%;
-            max-width: 450px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-        }
-
-        .btn-login {
-            background: #0047B6;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            width: 100%;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: background 0.3s;
-        }
-
-        .btn-login:hover {
-            background: #003399;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-            position: relative;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #444;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 10px 40px 10px 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-
-        .password-toggle {
-            position: absolute;
-            right: 10px;
-            top: 35px;
-            cursor: pointer;
-            color: #666;
-            font-size: 18px;
-        }
-
-        .password-toggle:hover {
-            color: #0047B6;
-        }
-
-        /* Estilos do Aplicativo Principal */
-        .header-app {
-            background: #0047B6;
-            color: white;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .header-app h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-
-        .header-app p {
-            margin: 5px 0 0 0;
-            opacity: 0.9;
-            font-size: 14px;
-        }
-
-        .btn-header {
-            background: #F2B817;
-            color: #1d1d1b;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: transform 0.2s;
-        }
-
-        .btn-header:hover {
-            transform: translateY(-2px);
-        }
-
-        .btn-admin {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-escola {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .btn-sair {
-            background: #F2B817;
-            color: #1d1d1b;
-        }
-
-        /* Conteúdo Principal */
-        .main-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .config-section {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .periodo-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .periodo-btn {
-            padding: 8px 15px;
-            border: 2px solid #ddd;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 500;
-        }
-
-        .periodo-btn:hover {
-            border-color: #0047B6;
-        }
-
-        .periodo-btn.active {
-            background: #0047B6;
-            color: white;
-            border-color: #0047B6;
-        }
-
-        /* Cards de Semana */
-        .semana-card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #0047B6;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-            min-height: 80px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .semana-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-
-        .semana-card h4 {
-            margin: 0 0 5px 0;
-            color: #0047B6;
-            font-size: 16px;
-        }
-
-        .semana-card p {
-            margin: 0;
-            color: #666;
-            font-size: 12px;
-        }
-
-        .semana-card small {
-            color: #999;
-            font-size: 11px;
-        }
-
-        .badge-status {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-top: 5px;
-        }
-
-        .badge-vazia {
-            background: #ffebee;
-            color: #c62828;
-        }
-
-        .badge-parcial {
-            background: #fff3e0;
-            color: #ef6c00;
-        }
-
-        .badge-completa {
-            background: #e8f5e8;
-            color: #2e7d32;
-        }
-
-        /* Grade de Horário */
-        .grade-container {
-            overflow-x: auto;
-            margin: 20px 0;
-        }
-
-        .grade-horario {
-            display: grid;
-            grid-template-columns: 100px repeat(5, 1fr);
-            gap: 1px;
-            background: #f0f0f0;
-            border: 1px solid #f0f0f0;
-            min-width: 800px;
-        }
-
-        .grade-header {
-            background: #0047B6;
-            color: white;
-            padding: 10px;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .grade-cell {
-            background: white;
-            padding: 10px;
-            min-height: 120px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .grade-cell-vazia {
-            background: #f9f9f9;
-            color: #999;
-            font-style: italic;
-            text-align: center;
-            padding: 20px 0;
-        }
-
-        /* Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            max-width: 800px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        /* Rodapé */
-        .rodape-autor {
-            text-align: center;
-            padding: 20px;
-            margin-top: 40px;
-            color: #666;
-            font-size: 14px;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .rodape-autor a {
-            color: #0047B6;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .rodape-autor a:hover {
-            text-decoration: underline;
-        }
-
-        /* Formulários */
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #444;
-        }
-
-        .input-group input,
-        .input-group select,
-        .input-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .input-group textarea {
-            height: 80px;
-            resize: vertical;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        /* Botões */
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: #0047B6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #003399;
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #218838;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-        }
-
-        .btn-secondary {
-            background: #666;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #555;
-        }
-
-        /* Disciplinas e Turmas */
-        .lista-itens {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 15px;
-        }
-
-        .item-card {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            border: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .item-card:hover {
-            background: #e9ecef;
-        }
-
-        .btn-remover {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 3px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
-        }
-
-        .btn-remover:hover {
-            background: #c82333;
-        }
-
-        /* Help Box */
-        .help-box {
-            background: #fff8e1;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #F2B817;
-            margin-top: 20px;
         }
     </style>
 </head>
@@ -603,20 +158,34 @@
                 <h1>📚 Planejador de Aulas</h1>
                 <p>Bem-vindo, <span id="userCumprimento">Professor</span>!</p>
             </div>
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button onclick="abrirEditarPerfil()" class="btn-header btn-perfil">
+                    👤 Perfil
+                </button>
                 <button onclick="abrirConfiguracaoEscola()" class="btn-header btn-escola">
-                    🏫 Escola
+                    🏫 Escolas
                 </button>
                 <button onclick="abrirConfiguracaoHorario()" class="btn-header">
                     🕐 Meu Horário
                 </button>
                 <button id="btnAdmin" class="btn-header btn-admin hidden" onclick="abrirPainelAdmin()">
-                    ⚙️ Administração
+                    ⚙️ Admin
                 </button>
                 <button onclick="fazerLogout()" class="btn-header btn-sair">
                     🚪 Sair
                 </button>
             </div>
+        </div>
+
+        <!-- Banner Escola Atual -->
+        <div id="bannerEscolaAtual" class="banner-escola hidden">
+            <div>
+                <strong>Escola atual:</strong> 
+                <span id="escolaAtualNome">Nenhuma escola selecionada</span>
+            </div>
+            <button onclick="abrirConfiguracaoEscola()" class="btn-trocar-escola">
+                🔄 Trocar Escola
+            </button>
         </div>
 
         <!-- Conteúdo Principal -->
@@ -669,11 +238,13 @@
                 <!-- Ajuda -->
                 <div class="help-box">
                     <p><strong>💡 Como usar:</strong></p>
-                    <p>1. Clique em "🏫 Escola" para cadastrar os dados da sua escola</p>
-                    <p>2. Clique em "🕐 Meu Horário" para configurar suas disciplinas e horários</p>
-                    <p>3. Configure a data de início do ano letivo e clique em "Gerar Semanas"</p>
-                    <p>4. Clique em uma semana para planejar suas aulas</p>
-                    <p>5. Use "Exportar DOC" para salvar seu planejamento em Word</p>
+                    <p>1. Clique em "👤 Perfil" para editar seus dados pessoais</p>
+                    <p>2. Clique em "🏫 Escolas" para cadastrar suas escolas</p>
+                    <p>3. Selecione uma escola no banner acima</p>
+                    <p>4. Clique em "🕐 Meu Horário" para configurar disciplinas e horários</p>
+                    <p>5. Configure a data de início do ano letivo e clique em "Gerar Semanas"</p>
+                    <p>6. Clique em uma semana para planejar suas aulas</p>
+                    <p>7. Use "Exportar DOC" para salvar seu planejamento em Word</p>
                     <p><strong>📚 Disciplinas cadastradas:</strong> <span id="disciplinasLista">0 disciplinas</span></p>
                 </div>
             </div>
@@ -705,7 +276,7 @@
         <!-- Rodapé -->
         <div class="rodape-autor">
             <p>Sistema desenvolvido por <strong>Lafaiete Erkmann</strong> • Contato: <a href="https://instagram.com/lafa.bio" target="_blank">@lafa.bio</a></p>
-            <p style="font-size: 12px; margin-top: 5px;">Planejador de Aulas © 2024</p>
+            <p style="font-size: 12px; margin-top: 5px;">Planejador de Aulas © 2024 - Suporte a Múltiplas Escolas</p>
         </div>
     </div>
 
