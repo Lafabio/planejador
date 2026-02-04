@@ -3,12 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planejador de Aulas</title>
+    <title>Planejador de Aulas - Sistema Completo</title>
     <link rel="stylesheet" href="style.css">
     <style>
         /* Estilos inline para garantir funcionamento inicial */
         .hidden {
             display: none !important;
+        }
+        
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        /* Estilos para o dropdown de escolas */
+        .dropdown-item:hover {
+            background-color: #f5f5f5;
         }
     </style>
 </head>
@@ -18,7 +28,7 @@
         <div class="login-box">
             <div style="text-align: center; margin-bottom: 30px;">
                 <h1 style="color: #0047B6;">🔒 Planejador de Aulas</h1>
-                <p>Sistema seguro para planejamento escolar</p>
+                <p>Sistema completo com suporte a múltiplas escolas</p>
             </div>
             
             <!-- Formulário de Login -->
@@ -159,11 +169,16 @@
                 <p>Bem-vindo, <span id="userCumprimento">Professor</span>!</p>
             </div>
             <div style="display: flex; gap: 10px; align-items: center;">
+                <div id="seletorEscolaHeader" style="position: relative;">
+                    <button onclick="alternarSeletorEscola()" class="btn-header" style="background: #17a2b8;">
+                        <span id="nomeEscolaAtualHeader">🏫 Selecionar Escola</span>
+                    </button>
+                    <div id="dropdownEscolas" class="hidden" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 6px; min-width: 250px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 400px; overflow-y: auto;">
+                        <!-- As escolas serão inseridas aqui via JavaScript -->
+                    </div>
+                </div>
                 <button onclick="abrirEditarPerfil()" class="btn-header btn-perfil">
                     👤 Perfil
-                </button>
-                <button onclick="abrirConfiguracaoEscola()" class="btn-header btn-escola">
-                    🏫 Escolas
                 </button>
                 <button onclick="abrirConfiguracaoHorario()" class="btn-header">
                     🕐 Meu Horário
@@ -184,7 +199,7 @@
                 <span id="escolaAtualNome">Nenhuma escola selecionada</span>
             </div>
             <button onclick="abrirConfiguracaoEscola()" class="btn-trocar-escola">
-                🔄 Trocar Escola
+                🔄 Configurar Escola
             </button>
         </div>
 
@@ -205,7 +220,7 @@
                             📋 Exportar DOC
                         </button>
                     </div>
-                    <div id="statusHorario" style="color: #666; font-size: 14px;">
+                    <div id="statusHorario" class="status-horario vazio">
                         ⚠️ Configure sua escola e horário primeiro
                     </div>
                 </div>
@@ -237,15 +252,15 @@
 
                 <!-- Ajuda -->
                 <div class="help-box">
-                    <p><strong>💡 Como usar:</strong></p>
-                    <p>1. Clique em "👤 Perfil" para editar seus dados pessoais</p>
-                    <p>2. Clique em "🏫 Escolas" para cadastrar suas escolas</p>
-                    <p>3. Selecione uma escola no banner acima</p>
-                    <p>4. Clique em "🕐 Meu Horário" para configurar disciplinas e horários</p>
-                    <p>5. Configure a data de início do ano letivo e clique em "Gerar Semanas"</p>
-                    <p>6. Clique em uma semana para planejar suas aulas</p>
-                    <p>7. Use "Exportar DOC" para salvar seu planejamento em Word</p>
-                    <p><strong>📚 Disciplinas cadastradas:</strong> <span id="disciplinasLista">0 disciplinas</span></p>
+                    <p><strong>💡 Como usar o sistema:</strong></p>
+                    <p>1. Selecione uma escola no menu "🏫 Selecionar Escola"</p>
+                    <p>2. Clique em "🕐 Meu Horário" para configurar disciplinas e horários ESPECÍFICOS da escola selecionada</p>
+                    <p>3. Configure a data de início do ano letivo e clique em "Gerar Semanas"</p>
+                    <p>4. Clique em uma semana para planejar suas aulas</p>
+                    <p>5. Use "Exportar DOC" para salvar seu planejamento em Word com formatação otimizada</p>
+                    <p><strong>📚 Disciplinas cadastradas na escola atual:</strong> <span id="disciplinasLista">0 disciplinas</span></p>
+                    <p><strong>⚠️ Lembre-se:</strong> Cada escola tem suas próprias disciplinas, turmas, horários e semanas!</p>
+                    <p><strong>🔄 Para alternar entre escolas:</strong> Clique no botão "🏫 [Nome da Escola]" no canto superior direito</p>
                 </div>
             </div>
 
@@ -276,7 +291,8 @@
         <!-- Rodapé -->
         <div class="rodape-autor">
             <p>Sistema desenvolvido por <strong>Lafaiete Erkmann</strong> • Contato: <a href="https://instagram.com/lafa.bio" target="_blank">@lafa.bio</a></p>
-            <p style="font-size: 12px; margin-top: 5px;">Planejador de Aulas © 2024 - Suporte a Múltiplas Escolas</p>
+            <p style="font-size: 12px; margin-top: 5px;">Planejador de Aulas © 2024 - Sistema Completo com Suporte a Múltiplas Escolas</p>
+            <p style="font-size: 11px; color: #666; margin-top: 5px;">Versão 2.0 • Dados completamente separados por escola</p>
         </div>
     </div>
 
