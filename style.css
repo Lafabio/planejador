@@ -1,5 +1,5 @@
-/* style (2).css */
-/* Estilos principais com todas as melhorias */
+/* style.css - Sistema Planejador de Aulas */
+/* Versão 2.0 - Suporte Completo a Múltiplas Escolas */
 
 * {
     margin: 0;
@@ -116,11 +116,13 @@ body {
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
-    transition: transform 0.2s;
+    transition: transform 0.2s, background 0.2s;
+    white-space: nowrap;
 }
 
 .btn-header:hover {
     transform: translateY(-2px);
+    background: #e0a800;
 }
 
 .btn-admin {
@@ -141,6 +143,29 @@ body {
 .btn-sair {
     background: #F2B817;
     color: #1d1d1b;
+}
+
+/* ========== DROPDOWN DE ESCOLAS ========== */
+#dropdownEscolas {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    min-width: 250px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+#dropdownEscolas .dropdown-item:last-child {
+    border-bottom: none;
+}
+
+#dropdownEscolas .dropdown-item:hover {
+    background: #f5f5f5;
 }
 
 /* ========== BANNER ESCOLA ATUAL ========== */
@@ -312,6 +337,95 @@ body {
     padding: 20px 0;
 }
 
+/* ========== CÉLULAS DINÂMICAS ========== */
+.grade-cell-com-aula {
+    background: white;
+    padding: 15px;
+    min-height: 150px;
+    border: 1px solid #e0e0e0;
+    position: relative;
+}
+
+.grade-cell-sem-aula {
+    background: #f9f9f9;
+    color: #999;
+    font-style: italic;
+    text-align: center;
+    padding: 5px 0;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    border: 1px dashed #e0e0e0;
+}
+
+.grade-cell-com-aula textarea {
+    width: 100%;
+    height: 100px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    resize: vertical;
+    transition: height 0.3s;
+}
+
+.grade-cell-com-aula .btn-acoes {
+    display: flex;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.grade-cell-com-aula .btn-acao {
+    background: #F2B817;
+    color: #1d1d1b;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    flex: 1;
+    transition: background 0.3s;
+}
+
+.grade-cell-com-aula .btn-acao:hover {
+    background: #e0a800;
+}
+
+.grade-cell-com-aula .btn-apagar {
+    background: #dc3545;
+    color: white;
+}
+
+.grade-cell-com-aula .btn-apagar:hover {
+    background: #c82333;
+}
+
+.info-aula {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.info-aula .disciplina {
+    font-weight: bold;
+    color: #0047B6;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.info-aula .turma {
+    font-size: 12px;
+    color: #666;
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
 /* ========== MODAL ========== */
 .modal-overlay {
     position: fixed;
@@ -434,6 +548,11 @@ body {
 
 .btn-secondary:hover {
     background: #555;
+}
+
+.btn-sm {
+    padding: 5px 10px;
+    font-size: 12px;
 }
 
 /* ========== DISCIPLINAS E TURMAS ========== */
@@ -616,6 +735,26 @@ body {
     display: block;
 }
 
+/* ========== STATUS DO HORÁRIO ========== */
+.status-horario {
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+.status-horario.vazio {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.status-horario.configurado {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
 /* ========== SCROLLBAR PERSONALIZADA ========== */
 ::-webkit-scrollbar {
     width: 8px;
@@ -634,4 +773,67 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #555;
+}
+
+/* ========== ANIMAÇÕES ========== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* ========== RESPONSIVIDADE ========== */
+@media (max-width: 768px) {
+    .header-app {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .header-app > div:last-child {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .btn-header {
+        padding: 8px 15px;
+        font-size: 14px;
+    }
+    
+    .banner-escola {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+    
+    .grade-horario {
+        min-width: 600px;
+    }
+    
+    .escolas-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        padding: 15px;
+        margin: 10px;
+    }
+    
+    #dropdownEscolas {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 300px;
+    }
 }
