@@ -2,12 +2,13 @@
 let usuarioLogado = null;
 let semanas = [];
 let semanaAtual = -1;
-let planejamentos = {};
-let horarioProfessor = {};
 
-// Configurações Múltiplas Escolas
+// Dados POR ESCOLA
 let escolas = [];
 let escolaAtual = null;
+
+// Cada escola tem seus próprios dados
+// Essas variáveis SEMPRE representam a escola atual
 let configEscolaAtual = {
     nome: "",
     endereco: "",
@@ -18,7 +19,6 @@ let configEscolaAtual = {
     logo: ""
 };
 
-// Configurações de Horário por Escola
 let configHorarioAtual = {
     aulasPorPeriodo: 7,
     duracaoAula: 45,
@@ -27,12 +27,19 @@ let configHorarioAtual = {
     duracaoIntervalo: 20
 };
 
-// Disciplinas e Turmas do Professor por Escola
-let disciplinasProfessor = [];
-let turmasProfessor = [];
+let disciplinasProfessor = [];  // Disciplinas da escola atual
+let turmasProfessor = [];       // Turmas da escola atual
+let horarioProfessor = {};      // Horário da escola atual
+let planejamentos = {};         // Planejamentos da escola atual
+let horariosGerados = [];       // Horários gerados da escola atual
 
-// Horários gerados
-let horariosGerados = [];
+// Variáveis temporárias para criação de nova escola
+let novaEscolaConfig = {
+    turno: "Matutino",
+    aulasPorPeriodo: 7,
+    duracaoAula: 45,
+    inicioAulas: "07:00"
+};
 
 // Superusuário
 const SUPER_USUARIO = {
@@ -71,6 +78,54 @@ function formatarDataISO(data) {
     if (!data) return '';
     const d = new Date(data);
     return d.toISOString().split('T')[0];
+}
+
+// Função auxiliar para horário padrão por turno
+function getHorarioPadraoPorTurno(turno) {
+    const padroes = {
+        'Matutino': {
+            aulasPorPeriodo: 7,
+            duracaoAula: 45,
+            inicioAulas: "07:00",
+            intervalo: "10:00",
+            duracaoIntervalo: 20
+        },
+        'Vespertino': {
+            aulasPorPeriodo: 7,
+            duracaoAula: 45,
+            inicioAulas: "13:00",
+            intervalo: "15:30",
+            duracaoIntervalo: 20
+        },
+        'Noturno': {
+            aulasPorPeriodo: 5,
+            duracaoAula: 50,
+            inicioAulas: "19:00",
+            intervalo: "20:30",
+            duracaoIntervalo: 15
+        },
+        'Integral': {
+            aulasPorPeriodo: 10,
+            duracaoAula: 45,
+            inicioAulas: "07:00",
+            intervalo: "12:00",
+            duracaoIntervalo: 60
+        }
+    };
+    
+    return padroes[turno] || padroes['Matutino'];
+}
+
+function calcularHorarioFinal(config) {
+    const [horaInicio, minutoInicio] = config.inicioAulas.split(':').map(Number);
+    const totalMinutos = horaInicio * 60 + minutoInicio + 
+                        (config.aulasPorPeriodo * config.duracaoAula) + 
+                        config.duracaoIntervalo;
+    
+    const horaFinal = Math.floor(totalMinutos / 60);
+    const minutoFinal = totalMinutos % 60;
+    
+    return `${String(horaFinal).padStart(2, '0')}:${String(minutoFinal).padStart(2, '0')}`;
 }
 
 // ========== FUNÇÕES DE LOGIN/CADASTRO ==========
@@ -310,6 +365,175 @@ function fazerLogout() {
     }
 }
 
+// ========== FUNÇÕES DE ALTERNÂNCIA DE ESCOLAS ==========
+function alternarSeletorEscola() {
+    const dropdown = document.getElementById('dropdownEscolas');
+    if (dropdown.classList.contains('hidden')) {
+        abrirDropdownEscolas();
+    } else {
+        dropdown.classList.add('hidden');
+    }
+}
+
+function abrirDropdownEscolas() {
+    const dropdown = document.getElementById('dropdownEscolas');
+    if (!dropdown) return;
+    
+    dropdown.innerHTML = '';
+    dropdown.classList.remove('hidden');
+    
+    if (escolas.length === 0) {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.innerHTML = '<div style="padding: 12px; color: #666; text-align: center;">Nenhuma escola cadastrada</div>';
+        dropdown.appendChild(item);
+        
+        const btnNova = document.createElement('div');
+        btnNova.className = 'dropdown-item';
+        btnNova.innerHTML = '<div style="padding: 12px; background: #f0f8ff; color: #0047B6; cursor: pointer; text-align: center; border-top: 1px solid #eee;" onclick="abrirCadastroEscola()">➕ Adicionar Escola</div>';
+        dropdown.appendChild(btnNova);
+        return;
+    }
+    
+    escolas.forEach(escola => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        if (escolaAtual && escola.id === escolaAtual.id) {
+            item.style.background = '#f0f8ff';
+        }
+        
+        item.innerHTML = `
+            <div style="padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-bottom: 1px solid #f0f0f0;" 
+                 onclick="selecionarEscolaRapido('${escola.id}')">
+                <div style="font-size: 20px;">${escola.logo ? '🏫' : '📚'}</div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: ${escolaAtual && escola.id === escolaAtual.id ? 'bold' : 'normal'}; color: #0047B6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${escola.nome}
+                    </div>
+                    <div style="font-size: 11px; color: #666;">
+                        ${escola.turno || 'Turno não definido'}
+                    </div>
+                </div>
+                ${escolaAtual && escola.id === escolaAtual.id ? '<div style="color: #28a745;">✓</div>' : ''}
+            </div>
+        `;
+        dropdown.appendChild(item);
+    });
+    
+    const btnNova = document.createElement('div');
+    btnNova.className = 'dropdown-item';
+    btnNova.innerHTML = `
+        <div style="padding: 12px; background: #f8f9fa; color: #0047B6; cursor: pointer; text-align: center; border-top: 1px solid #ddd; font-weight: bold;" 
+             onclick="abrirCadastroEscola(); document.getElementById('dropdownEscolas').classList.add('hidden');">
+            ➕ Adicionar Nova Escola
+        </div>
+    `;
+    dropdown.appendChild(btnNova);
+}
+
+function selecionarEscolaRapido(escolaId) {
+    const dropdown = document.getElementById('dropdownEscolas');
+    if (dropdown) {
+        dropdown.classList.add('hidden');
+    }
+    
+    // Verificar se a escola já está selecionada
+    if (escolaAtual && escolaAtual.id === escolaId) {
+        return;
+    }
+    
+    // Selecionar a escola
+    selecionarEscola(escolaId);
+}
+
+function selecionarEscola(escolaId) {
+    // Fechar modal se estiver aberto
+    fecharModal();
+    
+    // Fechar dropdown se estiver aberto
+    const dropdown = document.getElementById('dropdownEscolas');
+    if (dropdown) {
+        dropdown.classList.add('hidden');
+    }
+    
+    // Verificar se escola existe
+    const escola = escolas.find(e => e.id === escolaId);
+    if (!escola) {
+        alert('Escola não encontrada!');
+        return;
+    }
+    
+    // Mostrar loading
+    const appPrincipal = document.getElementById('appPrincipal');
+    const loadingHTML = `
+        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000;">
+            <div style="font-size: 24px; margin-bottom: 20px;">🔄</div>
+            <div style="font-weight: bold; color: #0047B6; margin-bottom: 10px;">Alternando para ${escola.nome}</div>
+            <div style="color: #666;">Carregando dados da escola...</div>
+        </div>
+    `;
+    appPrincipal.insertAdjacentHTML('beforeend', loadingHTML);
+    
+    // Pequeno delay para mostrar o loading
+    setTimeout(() => {
+        // Carregar dados da nova escola
+        carregarDadosEscola(escolaId);
+        
+        // Atualizar interface
+        atualizarInterface();
+        
+        // Atualizar banner da escola
+        atualizarBannerEscola();
+        
+        // Atualizar nome da escola no header
+        atualizarNomeEscolaHeader();
+        
+        // Renderizar semanas da nova escola
+        renderSemanas();
+        
+        // Atualizar status do horário
+        atualizarStatusHorario();
+        
+        // Remover loading
+        const loading = appPrincipal.querySelector('div[style*="position: fixed"]');
+        if (loading) {
+            loading.remove();
+        }
+        
+        // Mostrar confirmação
+        const escolaNomeElement = document.getElementById('escolaAtualNome');
+        if (escolaNomeElement) {
+            const originalText = escolaNomeElement.textContent;
+            escolaNomeElement.textContent = `✔ ${escola.nome}`;
+            escolaNomeElement.style.color = '#28a745';
+            
+            setTimeout(() => {
+                escolaNomeElement.textContent = originalText;
+                escolaNomeElement.style.color = '';
+            }, 2000);
+        }
+        
+        // Fechar página de aulas se estiver aberta
+        if (semanaAtual !== -1) {
+            voltarParaSemanas();
+        }
+        
+    }, 300);
+}
+
+function atualizarNomeEscolaHeader() {
+    const elemento = document.getElementById('nomeEscolaAtualHeader');
+    if (elemento) {
+        if (escolaAtual) {
+            const nomeCurto = escolaAtual.nome.length > 15 ? 
+                escolaAtual.nome.substring(0, 15) + '...' : escolaAtual.nome;
+            elemento.innerHTML = `🏫 ${nomeCurto}`;
+        } else {
+            elemento.innerHTML = '🏫 Selecionar Escola';
+        }
+    }
+}
+
 // ========== INICIALIZAÇÃO ==========
 function iniciarAplicacao() {
     document.getElementById('telaLogin').classList.add('hidden');
@@ -317,6 +541,18 @@ function iniciarAplicacao() {
     
     carregarDadosUsuario();
     atualizarInterface();
+    
+    // Adicionar evento para fechar dropdown ao clicar fora
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('dropdownEscolas');
+        const seletor = document.getElementById('seletorEscolaHeader');
+        
+        if (dropdown && seletor && !dropdown.classList.contains('hidden')) {
+            if (!seletor.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        }
+    });
 }
 
 function carregarDadosUsuario() {
@@ -332,7 +568,7 @@ function carregarDadosUsuario() {
     const escolasSalvas = localStorage.getItem('escolas_' + usuarioLogado.usuario);
     if (escolasSalvas) {
         escolas = JSON.parse(escolasSalvas);
-        if (escolas.length > 0) {
+        if (escolas.length > 0 && !escolaAtual) {
             escolaAtual = escolas[0];
             carregarDadosEscola(escolaAtual.id);
         }
@@ -340,7 +576,6 @@ function carregarDadosUsuario() {
     
     // Atualizar interface
     atualizarInterface();
-    atualizarStatusHorario();
 }
 
 function carregarDadosEscola(escolaId) {
@@ -351,26 +586,68 @@ function carregarDadosEscola(escolaId) {
     
     // Carregar configurações da escola
     const configSalva = localStorage.getItem(`configEscola_${usuarioLogado.usuario}_${escolaId}`);
-    if (configSalva) configEscolaAtual = JSON.parse(configSalva);
+    if (configSalva) {
+        configEscolaAtual = JSON.parse(configSalva);
+    } else {
+        configEscolaAtual = {
+            nome: escola.nome,
+            endereco: escola.endereco,
+            cidade: escola.cidade,
+            telefone: escola.telefone,
+            email: escola.email,
+            turno: escola.turno,
+            logo: escola.logo
+        };
+    }
     
     // Carregar configurações de horário
     const horarioSalvo = localStorage.getItem(`configHorario_${usuarioLogado.usuario}_${escolaId}`);
-    if (horarioSalvo) configHorarioAtual = JSON.parse(horarioSalvo);
+    if (horarioSalvo) {
+        configHorarioAtual = JSON.parse(horarioSalvo);
+    } else {
+        configHorarioAtual = getHorarioPadraoPorTurno(escola.turno);
+    }
     
-    // Carregar disciplinas e turmas
+    // Carregar disciplinas
     const disciplinasSalvas = localStorage.getItem(`disciplinas_${usuarioLogado.usuario}_${escolaId}`);
-    if (disciplinasSalvas) disciplinasProfessor = JSON.parse(disciplinasSalvas);
+    disciplinasProfessor = disciplinasSalvas ? JSON.parse(disciplinasSalvas) : [];
     
+    // Carregar turmas
     const turmasSalvas = localStorage.getItem(`turmas_${usuarioLogado.usuario}_${escolaId}`);
-    if (turmasSalvas) turmasProfessor = JSON.parse(turmasSalvas);
+    turmasProfessor = turmasSalvas ? JSON.parse(turmasSalvas) : [];
     
     // Carregar horário do professor
     const horarioProfessorSalvo = localStorage.getItem(`horarioProfessor_${usuarioLogado.usuario}_${escolaId}`);
-    if (horarioProfessorSalvo) horarioProfessor = JSON.parse(horarioProfessorSalvo);
+    horarioProfessor = horarioProfessorSalvo ? JSON.parse(horarioProfessorSalvo) : {};
     
     // Carregar planejamentos
     const planejamentosSalvos = localStorage.getItem(`planejamentos_${usuarioLogado.usuario}_${escolaId}`);
-    if (planejamentosSalvos) planejamentos = JSON.parse(planejamentosSalvos);
+    planejamentos = planejamentosSalvos ? JSON.parse(planejamentosSalvos) : {};
+    
+    // Carregar semanas
+    const semanasSalvas = localStorage.getItem(`semanas_${usuarioLogado.usuario}_${escolaId}`);
+    semanas = semanasSalvas ? JSON.parse(semanasSalvas) : [];
+    
+    // Converter strings de data para objetos Date
+    semanas.forEach(semana => {
+        if (typeof semana.inicio === 'string') {
+            semana.inicio = new Date(semana.inicio);
+        }
+        if (typeof semana.fim === 'string') {
+            semana.fim = new Date(semana.fim);
+        }
+    });
+    
+    // Carregar data de início
+    const dataInicioSalva = localStorage.getItem(`dataInicioLetivo_${usuarioLogado.usuario}_${escolaId}`);
+    if (dataInicioSalva && document.getElementById('inicioLetivo')) {
+        document.getElementById('inicioLetivo').value = dataInicioSalva;
+    } else if (document.getElementById('inicioLetivo')) {
+        document.getElementById('inicioLetivo').value = '';
+    }
+    
+    // Gerar horários baseados na nova configuração
+    gerarHorarios();
     
     // Atualizar nome da escola na interface
     const escolaNomeElement = document.getElementById('escolaAtualNome');
@@ -378,9 +655,14 @@ function carregarDadosEscola(escolaId) {
         escolaNomeElement.textContent = escolaAtual.nome;
     }
     
-    // Atualizar interface
+    // Atualizar contador de disciplinas
     atualizarListaDisciplinas();
-    gerarHorarios();
+    
+    // Atualizar status do horário
+    atualizarStatusHorario();
+    
+    // Atualizar nome da escola no header
+    atualizarNomeEscolaHeader();
 }
 
 function atualizarInterface() {
@@ -391,10 +673,10 @@ function atualizarInterface() {
         if (usuarioLogado.tipo === "superuser") {
             document.getElementById('btnAdmin').classList.remove('hidden');
         }
-        
-        // Atualizar banner da escola atual
-        atualizarBannerEscola();
     }
+    
+    // Atualizar seletor de escola
+    atualizarNomeEscolaHeader();
 }
 
 function atualizarBannerEscola() {
@@ -405,9 +687,22 @@ function atualizarBannerEscola() {
         if (escolaAtual) {
             banner.classList.remove('hidden');
             nomeEscola.textContent = escolaAtual.nome;
+            
+            // Adicionar contador de escolas
+            const contador = document.createElement('span');
+            contador.id = 'contadorEscolas';
+            contador.style.cssText = 'font-size: 12px; color: #666; margin-left: 10px; background: #e0e0e0; padding: 2px 8px; border-radius: 10px;';
+            contador.textContent = `${escolas.findIndex(e => e.id === escolaAtual.id) + 1}/${escolas.length}`;
+            
+            // Remover contador antigo se existir
+            const contadorAntigo = banner.querySelector('#contadorEscolas');
+            if (contadorAntigo) {
+                contadorAntigo.remove();
+            }
+            
+            banner.querySelector('div').appendChild(contador);
         } else {
             banner.classList.add('hidden');
-            nomeEscola.textContent = 'Nenhuma escola selecionada';
         }
     }
 }
@@ -415,16 +710,38 @@ function atualizarBannerEscola() {
 function atualizarListaDisciplinas() {
     const contador = disciplinasProfessor.length;
     const texto = contador === 0 ? 'Nenhuma disciplina cadastrada' : `${contador} disciplinas`;
-    document.getElementById('disciplinasLista').textContent = texto;
+    const element = document.getElementById('disciplinasLista');
+    if (element) {
+        element.textContent = texto;
+    }
+}
+
+// ========== FUNÇÃO PARA MOSTRAR AVISO SEM ESCOLA ==========
+function mostrarAvisoSemEscola() {
+    const container = document.getElementById('listaSemanas');
+    if (container && !escolaAtual) {
+        container.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                <div style="font-size: 48px; color: #ccc; margin-bottom: 20px;">🏫</div>
+                <h3 style="color: #666; margin-bottom: 10px;">Nenhuma escola selecionada</h3>
+                <p style="color: #999; margin-bottom: 20px;">Selecione uma escola para ver as semanas</p>
+                <button onclick="alternarSeletorEscola()" class="btn btn-primary" style="padding: 10px 20px;">
+                    🏫 Selecionar Escola
+                </button>
+            </div>
+        `;
+    }
+    
+    // Atualizar status do horário
+    const statusElement = document.getElementById('statusHorario');
+    if (statusElement && !escolaAtual) {
+        statusElement.innerHTML = '⚠️ Selecione uma escola primeiro';
+        statusElement.className = 'status-horario vazio';
+    }
 }
 
 // ========== GESTÃO DE ESCOLAS ==========
 function abrirConfiguracaoEscola() {
-    if (escolas.length === 0) {
-        abrirCadastroEscola();
-        return;
-    }
-    
     const modalHTML = `
         <div class="modal-overlay">
             <div class="modal-content" style="max-width: 800px;">
@@ -515,34 +832,34 @@ function abrirCadastroEscola() {
                     <h4 style="color: #2A6ED4; margin-bottom: 15px;">📋 Dados da Escola</h4>
                     
                     <div class="input-group">
-                        <label>Nome da Escola:</label>
-                        <input type="text" id="novaEscolaNome" placeholder="Nome da instituição">
+                        <label>Nome da Escola *</label>
+                        <input type="text" id="novaEscolaNome" placeholder="Nome da instituição" required>
                     </div>
                     
                     <div class="input-group">
-                        <label>Endereço:</label>
+                        <label>Endereço</label>
                         <input type="text" id="novaEscolaEndereco" placeholder="Rua, número, bairro">
                     </div>
                     
                     <div class="grid-2">
                         <div class="input-group">
-                            <label>Cidade:</label>
+                            <label>Cidade</label>
                             <input type="text" id="novaEscolaCidade" placeholder="Cidade">
                         </div>
                         <div class="input-group">
-                            <label>Telefone:</label>
+                            <label>Telefone</label>
                             <input type="text" id="novaEscolaTelefone" placeholder="(11) 99999-9999">
                         </div>
                     </div>
                     
                     <div class="grid-2">
                         <div class="input-group">
-                            <label>Email:</label>
+                            <label>Email</label>
                             <input type="email" id="novaEscolaEmail" placeholder="escola@email.com">
                         </div>
                         <div class="input-group">
-                            <label>Turno:</label>
-                            <select id="novaEscolaTurno">
+                            <label>Turno *</label>
+                            <select id="novaEscolaTurno" onchange="atualizarHorarioPorTurno()">
                                 <option value="Matutino">Matutino</option>
                                 <option value="Vespertino">Vespertino</option>
                                 <option value="Noturno">Noturno</option>
@@ -552,9 +869,45 @@ function abrirCadastroEscola() {
                     </div>
                     
                     <div class="input-group">
-                        <label>Logo da Escola (URL da imagem):</label>
+                        <label>Logo da Escola (URL da imagem)</label>
                         <input type="text" id="novaEscolaLogo" placeholder="https://exemplo.com/logo.png">
                         <small style="color: #666;">Cole a URL de uma imagem ou deixe em branco</small>
+                    </div>
+                </div>
+                
+                <div class="config-section">
+                    <h4 style="color: #2A6ED4; margin-bottom: 15px;">🕐 Configuração de Horário Padrão</h4>
+                    
+                    <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <p><strong>Turno selecionado:</strong> <span id="turnoSelecionado">Matutino</span></p>
+                        <p><strong>Horário padrão:</strong> <span id="horarioPadrao">07:00 - 12:25 (7 aulas de 45min)</span></p>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Aulas por período:</label>
+                            <input type="number" id="novaEscolaAulas" value="7" min="4" max="12" onchange="atualizarConfigNovaEscola('aulasPorPeriodo', this.value)">
+                        </div>
+                        <div class="input-group">
+                            <label>Duração da aula (min):</label>
+                            <input type="number" id="novaEscolaDuracaoAula" value="45" min="40" max="60" onchange="atualizarConfigNovaEscola('duracaoAula', this.value)">
+                        </div>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Início das aulas:</label>
+                            <input type="time" id="novaEscolaInicio" value="07:00" onchange="atualizarConfigNovaEscola('inicioAulas', this.value)">
+                        </div>
+                        <div class="input-group">
+                            <label>Horário do recreio:</label>
+                            <input type="time" id="novaEscolaRecreio" value="10:00">
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Duração do recreio (min):</label>
+                        <input type="number" id="novaEscolaDuracaoRecreio" value="20" min="10" max="30">
                     </div>
                 </div>
                 
@@ -567,6 +920,31 @@ function abrirCadastroEscola() {
     `;
     
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+    atualizarHorarioPorTurno();
+}
+
+function atualizarHorarioPorTurno() {
+    const turno = document.getElementById('novaEscolaTurno').value;
+    document.getElementById('turnoSelecionado').textContent = turno;
+    
+    const padrao = getHorarioPadraoPorTurno(turno);
+    
+    // Atualizar campos
+    document.getElementById('novaEscolaAulas').value = padrao.aulasPorPeriodo;
+    document.getElementById('novaEscolaDuracaoAula').value = padrao.duracaoAula;
+    document.getElementById('novaEscolaInicio').value = padrao.inicioAulas;
+    
+    // Atualizar config temporária
+    novaEscolaConfig = { ...padrao, turno: turno };
+    
+    // Calcular horário de término
+    const horarioFinal = calcularHorarioFinal(padrao);
+    document.getElementById('horarioPadrao').textContent = 
+        `${padrao.inicioAulas} - ${horarioFinal} (${padrao.aulasPorPeriodo} aulas de ${padrao.duracaoAula}min)`;
+}
+
+function atualizarConfigNovaEscola(campo, valor) {
+    novaEscolaConfig[campo] = valor;
 }
 
 function salvarNovaEscola() {
@@ -585,7 +963,7 @@ function salvarNovaEscola() {
     
     // Criar nova escola
     const novaEscola = {
-        id: 'escola_' + Date.now(),
+        id: 'escola_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
         nome: nome,
         endereco: endereco,
         cidade: cidade,
@@ -596,22 +974,53 @@ function salvarNovaEscola() {
         dataCadastro: new Date().toISOString()
     };
     
+    // Adicionar à lista
     escolas.push(novaEscola);
     localStorage.setItem('escolas_' + usuarioLogado.usuario, JSON.stringify(escolas));
     
-    // Selecionar a nova escola
+    // Salvar configurações específicas desta escola
+    const configHorarioCompleta = {
+        aulasPorPeriodo: parseInt(document.getElementById('novaEscolaAulas').value) || novaEscolaConfig.aulasPorPeriodo,
+        duracaoAula: parseInt(document.getElementById('novaEscolaDuracaoAula').value) || novaEscolaConfig.duracaoAula,
+        inicioAulas: document.getElementById('novaEscolaInicio').value || novaEscolaConfig.inicioAulas,
+        intervalo: document.getElementById('novaEscolaRecreio').value || "10:00",
+        duracaoIntervalo: parseInt(document.getElementById('novaEscolaDuracaoRecreio').value) || 20
+    };
+    
+    // Salvar dados iniciais da escola
+    localStorage.setItem(`configEscola_${usuarioLogado.usuario}_${novaEscola.id}`, JSON.stringify({
+        nome: nome,
+        endereco: endereco,
+        cidade: cidade,
+        telefone: telefone,
+        email: email,
+        turno: turno,
+        logo: logo
+    }));
+    
+    localStorage.setItem(`configHorario_${usuarioLogado.usuario}_${novaEscola.id}`, JSON.stringify(configHorarioCompleta));
+    
+    // Inicializar arrays vazios para esta escola
+    localStorage.setItem(`disciplinas_${usuarioLogado.usuario}_${novaEscola.id}`, JSON.stringify([]));
+    localStorage.setItem(`turmas_${usuarioLogado.usuario}_${novaEscola.id}`, JSON.stringify([]));
+    localStorage.setItem(`horarioProfessor_${usuarioLogado.usuario}_${novaEscola.id}`, JSON.stringify({}));
+    localStorage.setItem(`planejamentos_${usuarioLogado.usuario}_${novaEscola.id}`, JSON.stringify({}));
+    localStorage.setItem(`semanas_${usuarioLogado.usuario}_${novaEscola.id}`, JSON.stringify([]));
+    
+    // Selecionar a nova escola automaticamente
     escolaAtual = novaEscola;
     carregarDadosEscola(novaEscola.id);
     
-    alert('Escola cadastrada com sucesso!');
+    alert('Escola cadastrada com sucesso!\n\nConfigure agora as disciplinas e turmas específicas desta escola.');
+    
     fecharModal();
     atualizarBannerEscola();
-}
-
-function selecionarEscola(escolaId) {
-    carregarDadosEscola(escolaId);
-    fecharModal();
-    atualizarBannerEscola();
+    atualizarNomeEscolaHeader();
+    
+    // Abrir configuração de horário para preencher disciplinas
+    setTimeout(() => {
+        abrirConfiguracaoHorario();
+    }, 500);
 }
 
 function removerEscola(event, escolaId) {
@@ -622,19 +1031,26 @@ function removerEscola(event, escolaId) {
         return;
     }
     
-    if (confirm('Tem certeza que deseja remover esta escola?\n\nTodos os dados associados serão perdidos.')) {
-        // Remover escola
+    if (confirm(`Tem certeza que deseja remover esta escola?\n\nTodos os dados associados a esta escola serão permanentemente excluídos:\n- Configurações de horário\n- Disciplinas e turmas\n- Planejamentos de aulas\n- Semanas geradas\n\nEsta ação não pode ser desfeita.`)) {
+        // Remover escola da lista
         escolas = escolas.filter(e => e.id !== escolaId);
         localStorage.setItem('escolas_' + usuarioLogado.usuario, JSON.stringify(escolas));
         
-        // Remover dados associados
-        const prefix = `${usuarioLogado.usuario}_${escolaId}`;
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.includes(prefix)) {
-                localStorage.removeItem(key);
-            }
-        }
+        // Remover TODOS os dados associados a esta escola
+        const prefixos = [
+            'configEscola_',
+            'configHorario_',
+            'disciplinas_',
+            'turmas_',
+            'horarioProfessor_',
+            'planejamentos_',
+            'semanas_',
+            'dataInicioLetivo_'
+        ];
+        
+        prefixos.forEach(prefixo => {
+            localStorage.removeItem(`${prefixo}${usuarioLogado.usuario}_${escolaId}`);
+        });
         
         // Selecionar primeira escola
         if (escolas.length > 0) {
@@ -651,11 +1067,19 @@ function removerEscola(event, escolaId) {
                 turno: "Matutino",
                 logo: ""
             };
+            configHorarioAtual = getHorarioPadraoPorTurno("Matutino");
+            disciplinasProfessor = [];
+            turmasProfessor = [];
+            horarioProfessor = {};
+            planejamentos = {};
+            semanas = [];
         }
         
         atualizarSeletorEscolas();
         atualizarBannerEscola();
-        alert('Escola removida com sucesso!');
+        atualizarNomeEscolaHeader();
+        renderSemanas();
+        alert('Escola removida com sucesso!\n\nTodos os dados específicos desta escola foram excluídos.');
     }
 }
 
@@ -757,7 +1181,7 @@ function abrirConfiguracaoEscolaDetalhes() {
                     </div>
                     
                     <div style="margin-top: 15px; padding: 10px; background: #f0f8ff; border-radius: 6px;">
-                        <p><strong>Horários gerados:</strong></p>
+                        <p><strong>Horários gerados para esta escola:</strong></p>
                         <div id="previewHorarios" style="font-size: 12px; max-height: 100px; overflow-y: auto;">
                             ${gerarPreviewHorarios().map(h => `<div>${h}</div>`).join('')}
                         </div>
@@ -847,20 +1271,20 @@ function salvarConfiguracaoEscolaAtual() {
     configEscolaAtual.turno = document.getElementById('modalTurnoEscola').value;
     configEscolaAtual.logo = document.getElementById('modalLogoEscola').value.trim();
     
-    // Atualizar escola na lista
-    const escolaIndex = escolas.findIndex(e => e.id === escolaAtual.id);
-    if (escolaIndex !== -1) {
-        escolas[escolaIndex] = { ...escolas[escolaIndex], ...configEscolaAtual };
-        localStorage.setItem('escolas_' + usuarioLogado.usuario, JSON.stringify(escolas));
-        escolaAtual = escolas[escolaIndex];
-    }
-    
     // Salvar configurações de horário
     configHorarioAtual.aulasPorPeriodo = parseInt(document.getElementById('modalAulasPeriodo').value) || 7;
     configHorarioAtual.duracaoAula = parseInt(document.getElementById('modalDuracaoAula').value) || 45;
     configHorarioAtual.inicioAulas = document.getElementById('modalInicioAulas').value || "07:00";
     configHorarioAtual.intervalo = document.getElementById('modalHorarioRecreio').value || "10:00";
     configHorarioAtual.duracaoIntervalo = parseInt(document.getElementById('modalDuracaoRecreio').value) || 20;
+    
+    // Atualizar escola na lista com os novos dados
+    const escolaIndex = escolas.findIndex(e => e.id === escolaAtual.id);
+    if (escolaIndex !== -1) {
+        escolas[escolaIndex].nome = configEscolaAtual.nome;
+        escolas[escolaIndex].turno = configEscolaAtual.turno;
+        localStorage.setItem('escolas_' + usuarioLogado.usuario, JSON.stringify(escolas));
+    }
     
     // Salvar no localStorage com chave específica da escola
     localStorage.setItem(`configEscola_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(configEscolaAtual));
@@ -869,9 +1293,10 @@ function salvarConfiguracaoEscolaAtual() {
     // Atualizar horários
     gerarHorarios();
     
-    alert('Configurações salvas com sucesso!');
+    alert('Configurações salvas com sucesso!\n\nEsta escola agora tem configuração independente.');
     fecharModal();
     atualizarBannerEscola();
+    atualizarNomeEscolaHeader();
 }
 
 // ========== CONFIGURAÇÃO DE HORÁRIO ==========
@@ -879,7 +1304,7 @@ function abrirConfiguracaoHorario() {
     // Verificar se escola foi selecionada
     if (!escolaAtual) {
         alert('Selecione uma escola primeiro!');
-        abrirConfiguracaoEscola();
+        alternarSeletorEscola();
         return;
     }
     
@@ -887,22 +1312,47 @@ function abrirConfiguracaoHorario() {
         <div class="modal-overlay">
             <div class="modal-content" style="max-width: 1000px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="color: #0047B6; margin: 0;">🕐 Configurar Meu Horário - ${escolaAtual.nome}</h3>
+                    <h3 style="color: #0047B6; margin: 0;">🕐 Configurar Horário - ${escolaAtual.nome}</h3>
                     <button onclick="fecharModal()" class="btn btn-secondary">Fechar</button>
                 </div>
                 
+                <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <div>
+                            <p><strong>Escola:</strong> ${escolaAtual.nome}</p>
+                            <p><strong>Turno:</strong> ${configEscolaAtual.turno || escolaAtual.turno}</p>
+                            <p><strong>Horário base:</strong> ${configHorarioAtual.inicioAulas} (${configHorarioAtual.aulasPorPeriodo} aulas)</p>
+                        </div>
+                        <div style="color: #2E7D32; font-weight: bold;">
+                            <p>⚠️ Disciplinas e turmas são ESPECÍFICAS desta escola</p>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="config-section">
-                    <h4 style="color: #2A6ED4; margin-bottom: 15px;">📚 Minhas Disciplinas</h4>
+                    <h4 style="color: #2A6ED4; margin-bottom: 15px;">📚 Disciplinas desta Escola</h4>
+                    <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+                        As disciplinas cadastradas aqui são usadas APENAS em ${escolaAtual.nome}.
+                        Cada escola tem sua própria lista de disciplinas.
+                    </p>
                     
                     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                         <input type="text" id="novaDisciplinaNome" placeholder="Nome da disciplina" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
                         <select id="novaDisciplinaIcone" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
-                            <option value="📚">📚 Livro</option>
+                            <option value="📚">📚 Geral</option>
                             <option value="🧬">🧬 Biologia</option>
                             <option value="🔬">🔬 Ciências</option>
-                            <option value="🤖">🤖 Robótica</option>
-                            <option value="🎮">🎮 Games</option>
+                            <option value="🧪">🧪 Química</option>
+                            <option value="🧮">🧮 Matemática</option>
+                            <option value="📖">📖 Português</option>
+                            <option value="🌍">🌍 Geografia</option>
+                            <option value="📜">📜 História</option>
                             <option value="💻">💻 Informática</option>
+                            <option value="🎨">🎨 Arte</option>
+                            <option value="🎵">🎵 Música</option>
+                            <option value="⚽">⚽ Educação Física</option>
+                            <option value="🤖">🤖 Robótica</option>
+                            <option value="🔧">🔧 Técnico</option>
                             <option value="📝">📝 Outra</option>
                         </select>
                         <button onclick="adicionarDisciplina()" class="btn btn-primary">➕ Adicionar</button>
@@ -911,13 +1361,23 @@ function abrirConfiguracaoHorario() {
                     <div id="listaDisciplinas" class="lista-itens">
                         ${renderDisciplinas()}
                     </div>
+                    
+                    ${disciplinasProfessor.length === 0 ? `
+                    <div style="background: #fff8e1; padding: 15px; border-radius: 6px; margin-top: 15px;">
+                        <p><strong>💡 Importante:</strong> Você precisa cadastrar pelo menos uma disciplina para ${escolaAtual.nome}.</p>
+                        <p>Estas disciplinas não aparecerão em outras escolas.</p>
+                    </div>
+                    ` : ''}
                 </div>
                 
                 <div class="config-section">
-                    <h4 style="color: #2A6ED4; margin-bottom: 15px;">🏫 Minhas Turmas</h4>
+                    <h4 style="color: #2A6ED4; margin-bottom: 15px;">🏫 Turmas desta Escola</h4>
+                    <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+                        As turmas cadastradas aqui são usadas APENAS em ${escolaAtual.nome}.
+                    </p>
                     
                     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                        <input type="text" id="novaTurmaNome" placeholder="Código da turma" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                        <input type="text" id="novaTurmaNome" placeholder="Ex: 1A, 2B, 3C, 9ºANO" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
                         <button onclick="adicionarTurma()" class="btn btn-primary">➕ Adicionar</button>
                     </div>
                     
@@ -927,12 +1387,23 @@ function abrirConfiguracaoHorario() {
                 </div>
                 
                 <div class="config-section">
-                    <h4 style="color: #2A6ED4; margin-bottom: 15px;">📅 Grade Horária</h4>
+                    <h4 style="color: #2A6ED4; margin-bottom: 15px;">📅 Grade Horária - ${escolaAtual.nome}</h4>
                     
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <p><strong>Escola:</strong> ${configEscolaAtual.nome || escolaAtual.nome}</p>
-                        <p><strong>Turno:</strong> ${configEscolaAtual.turno || escolaAtual.turno}</p>
-                        <p><strong>Horários:</strong> ${configHorarioAtual.aulasPorPeriodo} aulas por dia</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <p><strong>Configuração atual:</strong></p>
+                                <p>Aulas: ${configHorarioAtual.aulasPorPeriodo} por dia</p>
+                                <p>Duração: ${configHorarioAtual.duracaoAula} minutos</p>
+                                <p>Início: ${configHorarioAtual.inicioAulas}</p>
+                            </div>
+                            <div>
+                                <p><strong>Status:</strong></p>
+                                <p>Disciplinas: ${disciplinasProfessor.length}</p>
+                                <p>Turmas: ${turmasProfessor.length}</p>
+                                <p>Aulas configuradas: ${contarAulasConfiguradas()}</p>
+                            </div>
+                        </div>
                     </div>
                     
                     <div id="gradeConfigHorario" class="grade-container">
@@ -953,7 +1424,7 @@ function abrirConfiguracaoHorario() {
 
 function renderDisciplinas() {
     if (disciplinasProfessor.length === 0) {
-        return '<p style="color: #666; font-style: italic; text-align: center;">Nenhuma disciplina cadastrada</p>';
+        return '<p style="color: #666; font-style: italic; text-align: center;">Nenhuma disciplina cadastrada para esta escola</p>';
     }
     
     let html = '';
@@ -962,6 +1433,7 @@ function renderDisciplinas() {
             <div class="item-card">
                 <div>
                     <strong>${disciplina.icone} ${disciplina.nome}</strong>
+                    <div style="font-size: 10px; color: #666;">ID: ${disciplina.id.substring(0, 8)}...</div>
                 </div>
                 <button onclick="removerDisciplina(${index})" class="btn-remover">Remover</button>
             </div>
@@ -972,7 +1444,7 @@ function renderDisciplinas() {
 
 function renderTurmas() {
     if (turmasProfessor.length === 0) {
-        return '<p style="color: #666; font-style: italic; text-align: center;">Nenhuma turma cadastrada</p>';
+        return '<p style="color: #666; font-style: italic; text-align: center;">Nenhuma turma cadastrada para esta escola</p>';
     }
     
     let html = '';
@@ -987,6 +1459,18 @@ function renderTurmas() {
         `;
     });
     return html;
+}
+
+function contarAulasConfiguradas() {
+    let total = 0;
+    Object.values(horarioProfessor).forEach(dia => {
+        if (dia && Array.isArray(dia)) {
+            dia.forEach(aula => {
+                if (aula && aula.disciplina && aula.turma) total++;
+            });
+        }
+    });
+    return total;
 }
 
 function renderGradeConfigHorario() {
@@ -1006,10 +1490,29 @@ function renderGradeConfigHorario() {
             const dia = DIAS_SEMANA[j];
             const aulaData = horarioProfessor[dia] && horarioProfessor[dia][i] ? horarioProfessor[dia][i] : { disciplina: '', turma: '' };
             
+            const temAula = aulaData.disciplina && aulaData.turma;
+            
             html += `
-                <div class="grade-cell">
+                <div class="${temAula ? 'grade-cell grade-cell-com-aula' : 'grade-cell grade-cell-sem-aula'}" style="${temAula ? 'min-height: 100px;' : 'min-height: 40px;'}">
+            `;
+            
+            if (temAula) {
+                const disciplina = disciplinasProfessor.find(d => d.id === aulaData.disciplina);
+                html += `
+                    <div style="margin-bottom: 5px;">
+                        <strong style="font-size: 12px; color: #0047B6;">
+                            ${disciplina ? disciplina.icone + ' ' + disciplina.nome : ''}
+                        </strong>
+                    </div>
+                    <div style="font-size: 11px; color: #2E7D32;">
+                        🏫 Turma ${aulaData.turma}
+                    </div>
+                `;
+            }
+            
+            html += `
                     <select onchange="atualizarDisciplinaHorario('${dia}', ${i}, this.value)" 
-                            style="width: 100%; margin-bottom: 5px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                            style="width: 100%; margin-top: ${temAula ? '8px' : '5px'}; padding: 5px; border: 1px solid ${temAula ? '#2E7D32' : '#ddd'}; border-radius: 4px; font-size: 11px; ${temAula ? 'background: #f0f8f0;' : ''}">
                         <option value="">-- Sem aula --</option>
                         ${disciplinasProfessor.map(d => 
                             `<option value="${d.id}" ${aulaData.disciplina === d.id ? 'selected' : ''}>
@@ -1020,7 +1523,7 @@ function renderGradeConfigHorario() {
                     
                     ${aulaData.disciplina ? `
                         <select onchange="atualizarTurmaHorario('${dia}', ${i}, this.value)"
-                                style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                                style="width: 100%; margin-top: 5px; padding: 5px; border: 1px solid #2E7D32; border-radius: 4px; font-size: 11px; background: #f0f8f0;">
                             <option value="">Selecione turma</option>
                             ${turmasProfessor.map(t => 
                                 `<option value="${t}" ${aulaData.turma === t ? 'selected' : ''}>
@@ -1039,6 +1542,11 @@ function renderGradeConfigHorario() {
 }
 
 function adicionarDisciplina() {
+    if (!escolaAtual) {
+        alert('Selecione uma escola primeiro!');
+        return;
+    }
+    
     const nome = document.getElementById('novaDisciplinaNome').value.trim();
     const icone = document.getElementById('novaDisciplinaIcone').value;
     
@@ -1047,18 +1555,19 @@ function adicionarDisciplina() {
         return;
     }
     
-    // Verificar se já existe
+    // Verificar se já existe (apenas nesta escola)
     const existe = disciplinasProfessor.some(d => d.nome.toLowerCase() === nome.toLowerCase());
     if (existe) {
-        alert('Esta disciplina já existe');
+        alert('Esta disciplina já existe nesta escola');
         return;
     }
     
     // Adicionar
     const novaDisciplina = {
-        id: nome.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+        id: nome.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') + '_' + Date.now(),
         nome: nome,
-        icone: icone
+        icone: icone,
+        escolaId: escolaAtual.id
     };
     
     disciplinasProfessor.push(novaDisciplina);
@@ -1078,6 +1587,8 @@ function adicionarDisciplina() {
 }
 
 function removerDisciplina(index) {
+    if (!escolaAtual) return;
+    
     if (confirm('Tem certeza que deseja remover esta disciplina?')) {
         disciplinasProfessor.splice(index, 1);
         localStorage.setItem(`disciplinas_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(disciplinasProfessor));
@@ -1094,6 +1605,11 @@ function removerDisciplina(index) {
 }
 
 function adicionarTurma() {
+    if (!escolaAtual) {
+        alert('Selecione uma escola primeiro!');
+        return;
+    }
+    
     const nome = document.getElementById('novaTurmaNome').value.trim().toUpperCase();
     
     if (!nome) {
@@ -1101,9 +1617,9 @@ function adicionarTurma() {
         return;
     }
     
-    // Verificar se já existe
+    // Verificar se já existe (apenas nesta escola)
     if (turmasProfessor.includes(nome)) {
-        alert('Esta turma já existe');
+        alert('Esta turma já existe nesta escola');
         return;
     }
     
@@ -1124,6 +1640,8 @@ function adicionarTurma() {
 }
 
 function removerTurma(index) {
+    if (!escolaAtual) return;
+    
     if (confirm('Tem certeza que deseja remover esta turma?')) {
         turmasProfessor.splice(index, 1);
         localStorage.setItem(`turmas_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(turmasProfessor));
@@ -1153,21 +1671,24 @@ function atualizarTurmaHorario(dia, aulaIndex, turma) {
 }
 
 function salvarConfiguracaoHorario() {
-    if (!escolaAtual) return;
+    if (!escolaAtual) {
+        alert('Selecione uma escola primeiro!');
+        return;
+    }
     
     if (disciplinasProfessor.length === 0) {
-        alert('Cadastre pelo menos uma disciplina!');
+        alert('Cadastre pelo menos uma disciplina para esta escola!');
         return;
     }
     
     if (turmasProfessor.length === 0) {
-        alert('Cadastre pelo menos uma turma!');
+        alert('Cadastre pelo menos uma turma para esta escola!');
         return;
     }
     
     localStorage.setItem(`horarioProfessor_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(horarioProfessor));
     
-    alert('Horário salvo com sucesso!');
+    alert(`Horário salvo com sucesso para ${escolaAtual.nome}!\n\nEsta configuração é específica desta escola.`);
     atualizarStatusHorario();
     fecharModal();
 }
@@ -1178,6 +1699,12 @@ function gerarHorarios() {
 }
 
 function gerarSemanas() {
+    if (!escolaAtual) {
+        alert('Selecione uma escola primeiro!');
+        alternarSeletorEscola();
+        return;
+    }
+    
     const dataInicio = document.getElementById('inicioLetivo').value;
     
     if (!dataInicio) {
@@ -1185,32 +1712,19 @@ function gerarSemanas() {
         return;
     }
     
-    if (!escolaAtual) {
-        alert('Selecione uma escola primeiro!');
-        abrirConfiguracaoEscola();
-        return;
-    }
-    
-    // Verificar se horário foi configurado
-    let aulasConfiguradas = 0;
-    Object.values(horarioProfessor).forEach(dia => {
-        if (dia && Array.isArray(dia)) {
-            dia.forEach(aula => {
-                if (aula && aula.disciplina && aula.turma) aulasConfiguradas++;
-            });
-        }
-    });
+    // Verificar se horário foi configurado para ESTA escola
+    let aulasConfiguradas = contarAulasConfiguradas();
     
     if (aulasConfiguradas === 0) {
-        alert('Configure seu horário primeiro! Clique em "Meu Horário"');
+        alert(`Configure seu horário primeiro para ${escolaAtual.nome}!`);
         abrirConfiguracaoHorario();
         return;
     }
     
-    // Salvar data de início
+    // Salvar data de início ESPECÍFICA desta escola
     localStorage.setItem(`dataInicioLetivo_${usuarioLogado.usuario}_${escolaAtual.id}`, dataInicio);
     
-    // Gerar semanas
+    // Gerar semanas ESPECÍFICAS desta escola
     semanas = [];
     let data = new Date(dataInicio);
     
@@ -1230,19 +1744,23 @@ function gerarSemanas() {
         semanas.push({
             id: i + 1,
             inicio: inicio,
-            fim: fim
+            fim: fim,
+            escolaId: escolaAtual.id
         });
         
         data.setDate(data.getDate() + 7);
     }
     
-    // Inicializar planejamentos
+    // Salvar semanas ESPECÍFICAS desta escola
+    localStorage.setItem(`semanas_${usuarioLogado.usuario}_${escolaAtual.id}`, JSON.stringify(semanas));
+    
+    // Inicializar planejamentos ESPECÍFICOS desta escola
     inicializarPlanejamentos();
     
     // Renderizar semanas
     renderSemanas();
     
-    alert(`${semanas.length} semanas geradas com sucesso!`);
+    alert(`${semanas.length} semanas geradas com sucesso para ${escolaAtual.nome}!\n\nAs semanas são específicas desta escola.`);
 }
 
 function inicializarPlanejamentos() {
@@ -1280,6 +1798,30 @@ function renderSemanas() {
     const container = document.getElementById('listaSemanas');
     if (!container) return;
     
+    if (!escolaAtual) {
+        mostrarAvisoSemEscola();
+        return;
+    }
+    
+    if (semanas.length === 0) {
+        container.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                <div style="font-size: 48px; color: #ccc; margin-bottom: 20px;">📅</div>
+                <h3 style="color: #666; margin-bottom: 10px;">Nenhuma semana gerada para ${escolaAtual.nome}</h3>
+                <p style="color: #999; margin-bottom: 20px;">Configure a data de início do ano letivo e clique em "Gerar Semanas"</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="gerarSemanas()" class="btn btn-primary">
+                        📅 Gerar Semanas
+                    </button>
+                    <button onclick="abrirConfiguracaoHorario()" class="btn btn-secondary">
+                        🕐 Configurar Horário
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
     container.innerHTML = '';
     
     semanas.forEach((semana, index) => {
@@ -1301,7 +1843,7 @@ function renderSemanas() {
         container.appendChild(card);
     });
     
-    document.getElementById('contadorSemanas').textContent = `${semanas.length} semanas geradas`;
+    document.getElementById('contadorSemanas').textContent = `${semanas.length} semanas geradas para ${escolaAtual.nome}`;
 }
 
 function getStatusSemana(index) {
@@ -1386,6 +1928,11 @@ function renderSemanasFiltradas(tipo, termo = '') {
     const container = document.getElementById('listaSemanas');
     if (!container) return;
     
+    if (!escolaAtual) {
+        mostrarAvisoSemEscola();
+        return;
+    }
+    
     container.innerHTML = '';
     
     const semanasFiltradas = semanas.filter((semana, index) => {
@@ -1402,6 +1949,17 @@ function renderSemanasFiltradas(tipo, termo = '') {
         }
         return true;
     });
+    
+    if (semanasFiltradas.length === 0) {
+        container.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                <div style="font-size: 48px; color: #ccc; margin-bottom: 20px;">🔍</div>
+                <h3 style="color: #666; margin-bottom: 10px;">Nenhuma semana encontrada</h3>
+                <p style="color: #999;">Tente outro filtro ou busque por um termo diferente</p>
+            </div>
+        `;
+        return;
+    }
     
     semanasFiltradas.forEach((semana, posicao) => {
         const index = semanas.indexOf(semana);
@@ -1457,6 +2015,9 @@ function renderGradeSemana() {
     let html = `
         <div style="margin-bottom: 20px;">
             <h3>📅 Grade de Aulas - ${configEscolaAtual.nome || escolaAtual.nome}</h3>
+            <p style="color: #666; font-size: 14px; margin-top: 5px;">
+                Células com aula são expandidas para melhor visualização
+            </p>
         </div>
         
         <div class="grade-container">
@@ -1480,31 +2041,48 @@ function renderGradeSemana() {
             const disciplina = disciplinasProfessor.find(d => d.id === aulaData.disciplina);
             
             if (aulaData.disciplina && aulaData.turma) {
+                // CÉLULA COM AULA - AMPLIADA
+                const conteudoAtual = aulaData.conteudo || '';
+                const caracteres = conteudoAtual.length;
+                const alturaTextarea = Math.min(Math.max(80, Math.ceil(caracteres / 40) * 20), 200);
+                
                 html += `
-                    <div class="grade-cell">
-                        <div style="margin-bottom: 5px;">
-                            <strong style="font-size: 13px;">${disciplina ? disciplina.icone + ' ' + disciplina.nome : ''}</strong>
-                            <div style="font-size: 12px; color: #0047B6;">🏫 Turma ${aulaData.turma}</div>
+                    <div class="grade-cell grade-cell-com-aula">
+                        <div class="info-aula">
+                            <div class="disciplina">
+                                ${disciplina ? disciplina.icone : '📚'} 
+                                ${disciplina ? disciplina.nome : 'Disciplina'}
+                            </div>
+                            <div class="turma">
+                                🏫 Turma ${aulaData.turma}
+                            </div>
                         </div>
+                        
                         <textarea 
-                            style="width: 100%; height: 70px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;"
-                            placeholder="Conteúdo da aula..."
-                            oninput="salvarConteudoAula(${dia}, ${aula}, this.value)"
-                        >${aulaData.conteudo || ''}</textarea>
-                        <div style="margin-top: 5px; display: flex; gap: 5px;">
-                            <button onclick="copiarConteudo(${dia}, ${aula})" 
-                                    style="background: #F2B817; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; flex: 1;">
+                            style="height: ${alturaTextarea}px;"
+                            placeholder="Digite o conteúdo da aula..."
+                            oninput="salvarConteudoAula(${dia}, ${aula}, this.value); ajustarAlturaTextarea(this)"
+                            onfocus="this.style.borderColor='#0047B6'; this.style.boxShadow='0 0 0 2px rgba(0, 71, 182, 0.1)'"
+                            onblur="this.style.borderColor='#ddd'; this.style.boxShadow='none'"
+                        >${conteudoAtual}</textarea>
+                        
+                        <div class="btn-acoes">
+                            <button onclick="copiarConteudo(${dia}, ${aula})" class="btn-acao">
                                 📋 Copiar
                             </button>
-                            <button onclick="apagarConteudoAula(${dia}, ${aula})" 
-                                    style="background: #dc3545; color: white; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; flex: 1;">
+                            <button onclick="apagarConteudoAula(${dia}, ${aula})" class="btn-acao btn-apagar">
                                 🗑️ Apagar
                             </button>
                         </div>
                     </div>
                 `;
             } else {
-                html += `<div class="grade-cell grade-cell-vazia">Sem aula</div>`;
+                // CÉLULA SEM AULA - REDUZIDA
+                html += `
+                    <div class="grade-cell grade-cell-sem-aula" title="Nenhuma aula agendada para este horário">
+                        Sem aula
+                    </div>
+                `;
             }
         }
     }
@@ -1514,24 +2092,37 @@ function renderGradeSemana() {
     // Anotações
     html += `
         <div style="margin-top: 30px;">
-            <h3>📝 Anotações da Semana</h3>
-            <textarea id="anotacoesSemana" 
-                      style="width: 100%; height: 80px; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"
-                      placeholder="Anotações gerais..."
-                      oninput="salvarAnotacoesSemana(this.value)">${planejamento.anotacoes || ''}</textarea>
-            <div style="margin-top: 10px;">
-                <button onclick="apagarAnotacoesSemana()" class="btn btn-danger">
-                    🗑️ Apagar Anotações
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3>📝 Anotações da Semana</h3>
+                <button onclick="apagarAnotacoesSemana()" class="btn btn-danger btn-sm">
+                    🗑️ Apagar
                 </button>
             </div>
+            <textarea id="anotacoesSemana" 
+                      style="width: 100%; height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+                      placeholder="Anotações gerais para esta semana..."
+                      oninput="salvarAnotacoesSemana(this.value)"
+                      onfocus="this.style.borderColor='#0047B6'; this.style.boxShadow='0 0 0 2px rgba(0, 71, 182, 0.1)'"
+                      onblur="this.style.borderColor='#ddd'; this.style.boxShadow='none'">${planejamento.anotacoes || ''}</textarea>
         </div>
     `;
     
     container.innerHTML = html;
 }
 
+function ajustarAlturaTextarea(textarea) {
+    const conteudo = textarea.value;
+    const caracteres = conteudo.length;
+    const linhas = Math.max(3, Math.ceil(caracteres / 40));
+    const novaAltura = Math.min(Math.max(80, linhas * 20), 300);
+    
+    textarea.style.height = novaAltura + 'px';
+}
+
 // ========== FUNÇÕES DE SALVAMENTO ==========
 function salvarConteudoAula(dia, aula, conteudo) {
+    if (!escolaAtual) return;
+    
     const chave = `semana_${semanaAtual}`;
     if (!planejamentos[chave]) {
         planejamentos[chave] = {
@@ -1545,6 +2136,8 @@ function salvarConteudoAula(dia, aula, conteudo) {
 }
 
 function salvarAnotacoesSemana(anotacoes) {
+    if (!escolaAtual) return;
+    
     const chave = `semana_${semanaAtual}`;
     if (!planejamentos[chave]) {
         planejamentos[chave] = {
@@ -1624,24 +2217,22 @@ function atualizarStatusHorario() {
     const element = document.getElementById('statusHorario');
     if (!element) return;
     
-    let aulasConfiguradas = 0;
+    if (!escolaAtual) {
+        element.innerHTML = `⚠️ Selecione uma escola primeiro`;
+        element.className = 'status-horario vazio';
+        return;
+    }
+    
+    let aulasConfiguradas = contarAulasConfiguradas();
     let totalAulas = configHorarioAtual.aulasPorPeriodo * 5;
     
-    Object.values(horarioProfessor).forEach(dia => {
-        if (dia && Array.isArray(dia)) {
-            dia.forEach(aula => {
-                if (aula && aula.disciplina && aula.turma) aulasConfiguradas++;
-            });
-        }
-    });
-    
     if (aulasConfiguradas === 0) {
-        element.innerHTML = '⚠️ Configure seu horário primeiro';
-        element.style.color = '#d32f2f';
+        element.innerHTML = `⚠️ Configure seu horário para ${escolaAtual.nome} primeiro`;
+        element.className = 'status-horario vazio';
     } else {
         const percentual = Math.round((aulasConfiguradas / totalAulas) * 100);
-        element.innerHTML = `✅ Horário configurado: ${aulasConfiguradas}/${totalAulas} aulas (${percentual}%)`;
-        element.style.color = '#2E7D32';
+        element.innerHTML = `✅ Horário de ${escolaAtual.nome} configurado: ${aulasConfiguradas}/${totalAulas} aulas (${percentual}%)`;
+        element.className = 'status-horario configurado';
     }
 }
 
@@ -1661,6 +2252,20 @@ function exportarSemanaDOC() {
     const chave = `semana_${semanaAtual}`;
     const planejamento = planejamentos[chave] || { aulas: criarGradeVazia(), anotacoes: '' };
     
+    // Contar células com aula para otimizar layout
+    let celulasComAula = 0;
+    for (let dia = 0; dia < 5; dia++) {
+        for (let aula = 0; aula < configHorarioAtual.aulasPorPeriodo; aula++) {
+            const aulaData = planejamento.aulas[dia][aula];
+            if (aulaData.disciplina && aulaData.turma) {
+                celulasComAula++;
+            }
+        }
+    }
+    
+    // Determinar altura das linhas baseado no conteúdo
+    const alturaLinha = celulasComAula > 15 ? "auto" : "60px";
+    
     let logoHTML = '';
     if (configEscolaAtual.logo) {
         logoHTML = `<div class="logo-container"><img src="${configEscolaAtual.logo}" class="logo-documento" alt="${configEscolaAtual.nome}"></div>`;
@@ -1674,17 +2279,126 @@ function exportarSemanaDOC() {
             <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
             <title>Planejamento Semanal - Semana ${semana.id}</title>
             <style>
-                body { font-family: 'Calibri', 'Arial', sans-serif; margin: 20px; font-size: 11pt; }
-                h1 { color: #0047B6; text-align: center; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-                th { background-color: #0047B6; color: white; }
-                .header { text-align: center; margin-bottom: 30px; }
-                .info { margin: 10px 0; }
-                .logo-container { text-align: center; margin: 10px 0; }
-                .logo-documento { max-width: 150px; height: auto; }
-                .anotacoes { background: #fff8e1; padding: 15px; border: 2px solid #F2B817; margin-top: 30px; }
-                .rodape { text-align: center; margin-top: 30px; font-size: 9pt; color: #666; }
+                body { 
+                    font-family: 'Calibri', 'Arial', sans-serif; 
+                    margin: 25px; 
+                    font-size: 11pt; 
+                    line-height: 1.4;
+                }
+                h1 { 
+                    color: #0047B6; 
+                    text-align: center; 
+                    margin-bottom: 10px;
+                    font-size: 24pt;
+                }
+                h3 { 
+                    color: #2A6ED4; 
+                    text-align: center; 
+                    margin-top: 5px;
+                    margin-bottom: 20px;
+                    font-size: 14pt;
+                }
+                table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin-top: 25px;
+                    table-layout: fixed;
+                }
+                th, td { 
+                    border: 1px solid #ccc; 
+                    padding: 8px; 
+                    text-align: left;
+                    vertical-align: top;
+                }
+                th { 
+                    background-color: #0047B6; 
+                    color: white; 
+                    font-weight: bold;
+                    text-align: center;
+                    font-size: 10pt;
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 30px;
+                    page-break-after: avoid;
+                }
+                .info { 
+                    margin: 15px 0; 
+                    text-align: center;
+                    font-size: 10pt;
+                    color: #444;
+                }
+                .logo-container { 
+                    text-align: center; 
+                    margin: 15px 0; 
+                }
+                .logo-documento { 
+                    max-width: 150px; 
+                    height: auto; 
+                }
+                .celula-com-aula {
+                    background: #f8f9fa;
+                    min-height: ${alturaLinha};
+                }
+                .celula-sem-aula {
+                    background: #f5f5f5;
+                    color: #888;
+                    font-style: italic;
+                    text-align: center;
+                    font-size: 9pt;
+                    padding: 4px !important;
+                    height: 30px;
+                }
+                .disciplina-nome {
+                    font-weight: bold;
+                    color: #0047B6;
+                    font-size: 10pt;
+                    margin-bottom: 3px;
+                }
+                .turma-info {
+                    font-size: 9pt;
+                    color: #666;
+                    margin-bottom: 5px;
+                }
+                .conteudo-aula {
+                    font-size: 10pt;
+                    line-height: 1.3;
+                    margin-top: 5px;
+                }
+                .conteudo-vazio {
+                    color: #999;
+                    font-style: italic;
+                    font-size: 9pt;
+                }
+                .anotacoes { 
+                    background: #fff8e1; 
+                    padding: 20px; 
+                    border: 2px solid #F2B817; 
+                    margin-top: 30px;
+                    page-break-inside: avoid;
+                }
+                .anotacoes h4 {
+                    color: #e0a800;
+                    margin-top: 0;
+                }
+                .rodape { 
+                    text-align: center; 
+                    margin-top: 30px; 
+                    font-size: 8pt; 
+                    color: #666;
+                    page-break-before: always;
+                }
+                .periodo {
+                    font-weight: bold;
+                    color: #333;
+                    font-size: 9pt;
+                    text-align: center;
+                }
+                @media print {
+                    .page-break {
+                        page-break-before: always;
+                    }
+                }
             </style>
         </head>
         <body>
@@ -1694,47 +2408,49 @@ function exportarSemanaDOC() {
                 <h3>${configEscolaAtual.nome || escolaAtual.nome}</h3>
                 <h3>Semana ${semana.id} • ${formatarData(semana.inicio)} a ${formatarData(semana.fim)}</h3>
                 <div class="info">
-                    <p><strong>Professor:</strong> ${usuarioLogado.nome}</p>
-                    <p><strong>Escola:</strong> ${configEscolaAtual.nome || escolaAtual.nome}</p>
-                    <p><strong>Endereço:</strong> ${configEscolaAtual.endereco || escolaAtual.endereco}</p>
-                    <p><strong>Cidade:</strong> ${configEscolaAtual.cidade || escolaAtual.cidade}</p>
-                    <p><strong>Turno:</strong> ${configEscolaAtual.turno || escolaAtual.turno}</p>
-                    <p><strong>Telefone:</strong> ${configEscolaAtual.telefone || escolaAtual.telefone}</p>
+                    <p><strong>Professor:</strong> ${usuarioLogado.nome} &nbsp;|&nbsp; 
+                       <strong>Turno:</strong> ${configEscolaAtual.turno || escolaAtual.turno} &nbsp;|&nbsp;
+                       <strong>Data de geração:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
                 </div>
             </div>
             
             <table>
                 <thead>
                     <tr>
-                        <th>Horário</th>
+                        <th style="width: 100px;">Horário</th>
     `;
     
-    // Cabeçalho
+    // Cabeçalho dos dias
     DIAS_SEMANA_COMPLETO.forEach((dia, i) => {
         const data = new Date(semana.inicio);
         data.setDate(data.getDate() + i);
-        html += `<th>${dia}<br>${formatarData(data)}</th>`;
+        html += `<th style="width: 18%;">${dia}<br><small>${formatarData(data)}</small></th>`;
     });
     
     html += `</tr></thead><tbody>`;
     
-    // Conteúdo
+    // Conteúdo das aulas
     for (let aula = 0; aula < configHorarioAtual.aulasPorPeriodo; aula++) {
-        html += `<tr><td><strong>${horariosGerados[aula]}</strong><br><small>${configHorarioAtual.duracaoAula} min</small></td>`;
+        html += `<tr><td class="periodo"><strong>${horariosGerados[aula]}</strong><br>${configHorarioAtual.duracaoAula} min</td>`;
         
         for (let dia = 0; dia < 5; dia++) {
             const aulaData = planejamento.aulas[dia][aula];
             const disciplina = disciplinasProfessor.find(d => d.id === aulaData.disciplina);
             
             if (aulaData.disciplina && aulaData.turma) {
-                const conteudo = aulaData.conteudo ? aulaData.conteudo.replace(/\n/g, '<br>') : '<em>Sem conteúdo</em>';
-                html += `<td>
-                    <strong>${disciplina ? disciplina.nome : ''}</strong><br>
-                    <small>Turma ${aulaData.turma}</small><br>
-                    ${conteudo}
-                </td>`;
+                // CÉLULA COM AULA - FORMATO AMPLIADO
+                const conteudo = aulaData.conteudo ? aulaData.conteudo.replace(/\n/g, '<br>') : '<span class="conteudo-vazio">Sem conteúdo definido</span>';
+                
+                html += `
+                    <td class="celula-com-aula">
+                        <div class="disciplina-nome">${disciplina ? disciplina.nome : ''}</div>
+                        <div class="turma-info">Turma ${aulaData.turma}</div>
+                        <div class="conteudo-aula">${conteudo}</div>
+                    </td>
+                `;
             } else {
-                html += `<td style="color: #999; font-style: italic;">Sem aula</td>`;
+                // CÉLULA SEM AULA - FORMATO REDUZIDO
+                html += `<td class="celula-sem-aula">Sem aula</td>`;
             }
         }
         
@@ -1743,12 +2459,34 @@ function exportarSemanaDOC() {
     
     html += `</tbody></table>`;
     
-    // Anotações
-    if (planejamento.anotacoes) {
+    // Anotações (se houver)
+    if (planejamento.anotacoes && planejamento.anotacoes.trim() !== '') {
         html += `
             <div class="anotacoes">
-                <h3>📝 ANOTAÇÕES DA SEMANA</h3>
+                <h4>📝 ANOTAÇÕES DA SEMANA</h4>
                 <p>${planejamento.anotacoes.replace(/\n/g, '<br>')}</p>
+            </div>
+        `;
+    }
+    
+    // Resumo das disciplinas utilizadas na semana
+    const disciplinasUtilizadas = new Set();
+    for (let dia = 0; dia < 5; dia++) {
+        for (let aula = 0; aula < configHorarioAtual.aulasPorPeriodo; aula++) {
+            const aulaData = planejamento.aulas[dia][aula];
+            if (aulaData.disciplina) {
+                const disciplina = disciplinasProfessor.find(d => d.id === aulaData.disciplina);
+                if (disciplina) {
+                    disciplinasUtilizadas.add(`${disciplina.icone} ${disciplina.nome}`);
+                }
+            }
+        }
+    }
+    
+    if (disciplinasUtilizadas.size > 0) {
+        html += `
+            <div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 4px; font-size: 10pt;">
+                <p><strong>Disciplinas desta semana:</strong> ${Array.from(disciplinasUtilizadas).join(', ')}</p>
             </div>
         `;
     }
@@ -1756,7 +2494,8 @@ function exportarSemanaDOC() {
     // Rodapé
     html += `
         <div class="rodape">
-            <p>Documento gerado pelo Sistema Planejador de Aulas • ${new Date().toLocaleDateString('pt-BR')}</p>
+            <p>Documento gerado pelo Sistema Planejador de Aulas • ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</p>
+            <p>${configEscolaAtual.endereco || escolaAtual.endereco || ''} • ${configEscolaAtual.cidade || escolaAtual.cidade || ''} • ${configEscolaAtual.telefone || escolaAtual.telefone || ''}</p>
             <p>Desenvolvido por Lafaiete Erkmann • Contato: @lafa.bio</p>
         </div>
         </body>
@@ -1774,7 +2513,7 @@ function exportarSemanaDOC() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    alert('Documento exportado com sucesso!');
+    alert('Documento exportado com sucesso!\n\nCélulas com aula são destacadas e ampliadas.\nCélulas sem aula são reduzidas para melhor visualização.');
 }
 
 function exportarParaDOC() {
